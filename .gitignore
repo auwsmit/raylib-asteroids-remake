@@ -1,0 +1,25 @@
+# tag files
+tags
+tags.*
+
+# build files
+code/*.obj
+code/*.o
+*.o
+*.obj
+build/
+build_web/
+out
+asteroids
+asteroids.exe
+asteroids.html
+asteroids.js
+asteroids.wasm
+
+# debug files
+*.pdb
+*.rdi
+*.ilk
+
+# swap files
+.swp
