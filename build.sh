@@ -133,6 +133,8 @@ script_choose_simple_lines()
 
 script_cmake_config_and_build()
 {
+    echo "$cmake_setup_cmd $cmake_setup_flags"
+    echo "$cmake_build_cmd $cmake_build_flags"
     eval $cmake_setup_cmd $cmake_setup_flags
     eval $cmake_build_cmd $cmake_build_flags
     if [[ "$web" == 1 ]]; then
@@ -148,6 +150,7 @@ script_cmake_config_and_build()
 
 script_simple_build()
 {
+    echo "$compile $source_code $compile_link $compile_out"
     eval $compile $source_code $compile_link $compile_out
 }
 

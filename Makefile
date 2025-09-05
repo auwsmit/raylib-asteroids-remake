@@ -116,6 +116,7 @@ endif
 CPPFLAGS := -I$(RAYLIB_INC)
 LINKFLAGS  := -lraylib
 ifeq ($(CC),cl)
+    CPPFLAGS := /I$(RAYLIB_INC)
     LINKFLAGS  := /link /LIBPATH:"$(RAYLIB_LIB)/windows-msvc" \
                   raylib.lib gdi32.lib winmm.lib user32.lib shell32.lib
     ifeq ($(CONFIG),DEBUG)

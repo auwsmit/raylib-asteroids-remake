@@ -147,6 +147,8 @@ if "%release%"=="1"  set compile=%compile% %compile_release%
 :: ----------------------------------------------------------------------------
 pushd "%script_dir%"
 if "%cmake%"=="1" (
+    echo %cmake_setup_cmd% %cmake_setup_flags%
+    echo %cmake_build_cmd% %cmake_build_flags%
     %cmake_setup_cmd% %cmake_setup_flags%
     %cmake_build_cmd% %cmake_build_flags%
     if "%web%"=="1" (
@@ -161,6 +163,7 @@ if "%cmake%"=="1" (
 )
 
 if "%simple_build%"=="1" (
+    echo %compile% %compile_out% %source_code% %compile_link%
     %compile% %compile_out% %source_code% %compile_link%
     if "%msvc%"=="1" del /q "%script_dir%\*.obj"
 )
