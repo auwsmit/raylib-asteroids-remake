@@ -16,6 +16,8 @@
 
 void InitGameState(void)
 {
+    int randomAngle = GetRandomValue(0, 360);
+
     GameState defaultState =
     {
         // Game boots to raylib logo animation
@@ -29,7 +31,7 @@ void InitGameState(void)
 
             .width = SHIP_WIDTH,
             .length = SHIP_LENGTH,
-            .rotation = 45,
+            .rotation = randomAngle,
         },
     };
 
@@ -85,7 +87,30 @@ void FreeBeeps(void)
         UnloadSound(asteroidGame.beeps[i]);
 }
 
-void UpdatePongFrame(void)
+bool IsShipOnEdge(SpaceShip *ship)
+{
+    Vector2 shipTriangle[3] =
+    {
+        (Vector2){ 0, -ship->length / 2 },
+        (Vector2){ -ship->width / 2, ship->width / 2 },
+        (Vector2){  ship->width / 2, ship->width / 2 },
+    };
+
+    // Check each point
+    for (unsigned int i = 0; i < 3; i++)
+    {
+        shipTriangle[i] = Vector2Rotate(shipTriangle[i], ship->rotation * DEG2RAD);
+        shipTriangle[i] = Vector2Add(shipTriangle[i], ship->position);
+        if ((shipTriangle[i].x < 0) || (shipTriangle[i].x > RENDER_WIDTH) ||
+            (shipTriangle[i].y < 0) || (shipTriangle[i].y > RENDER_HEIGHT))
+                return true; // At least one point is past the edge
+    }
+
+    // Ship is not past edge
+    return false;
+}
+
+void UpdateAsteroidsFrame(void)
 {
 
     // Debug: reset ship
@@ -112,30 +137,50 @@ void UpdatePongFrame(void)
     if (!asteroidGame.isPaused)
     {
         // Update ship
+        if (asteroidGame.ship.edgeLooping)
+            UpdateShipPastEdge(&asteroidGame.ship);
+        asteroidGame.ship.edgeLooping = IsShipOnEdge(&asteroidGame.ship);
         UpdateShip(&asteroidGame.ship);
-    }
 
+    }
 
     // Update user interface elements and logic
     UpdateUiFrame();
+}
+
+void UpdateShipPastEdge(SpaceShip *ship)
+{
+    // set new position on opposite side of screen
+    if (ship->position.x < 0) // past left edge
+        ship->position.x += RENDER_WIDTH;
+
+    if (ship->position.x > RENDER_WIDTH) // past right edge
+        ship->position.x -= RENDER_WIDTH;
+
+    if (ship->position.y < 0) // past top edge
+        ship->position.y += RENDER_HEIGHT;
+
+    if (ship->position.y > RENDER_HEIGHT) // past bottom edge
+        ship->position.y -= RENDER_HEIGHT;
 }
 
 void UpdateShip(SpaceShip *ship)
 {
     if (IsInputActionDown(INPUT_ACTION_LEFT))
     {
-        ship->rotation -= TURN_SPEED * GetFrameTime();
+        ship->rotation -= SHIP_TURN_SPEED * GetFrameTime();
     }
     if (IsInputActionDown(INPUT_ACTION_RIGHT))
     {
-        ship->rotation += TURN_SPEED * GetFrameTime();
+        ship->rotation += SHIP_TURN_SPEED * GetFrameTime();
     }
 
     if (IsInputActionDown(INPUT_ACTION_FORWARD))
     {
-        Vector2 newVelocity = (Vector2){ 0, THRUST_SPEED * GetFrameTime() };
+        Vector2 newVelocity = (Vector2){ 0, SHIP_THRUST_SPEED * GetFrameTime() };
         newVelocity = Vector2Rotate(newVelocity, ship->rotation * DEG2RAD);
         ship->velocity = Vector2Add(ship->velocity, newVelocity);
+        ship->velocity = Vector2ClampValue(ship->velocity, 0, SHIP_MAX_SPEED);
     }
 
     // Update ship's position for velocity
@@ -144,7 +189,7 @@ void UpdateShip(SpaceShip *ship)
     // Slow down ship
     if (Vector2Length(ship->velocity) > 0)
     {
-        float slowdownAmount = SLOWDOWN_RATE * GetFrameTime();
+        float slowdownAmount = SPACE_FRICTION / 10 * GetFrameTime();
 
         if (Vector2Length(ship->velocity) > slowdownAmount)
         {
@@ -160,7 +205,7 @@ void UpdateShip(SpaceShip *ship)
     }
 }
 
-void DrawPongFrame(void)
+void DrawAsteroidsFrame(void)
 {
     // Draw ship
     DrawSpaceShip(&asteroidGame.ship);
@@ -178,28 +223,43 @@ void DrawSpaceShip(SpaceShip *ship)
         (Vector2){  ship->width / 2, ship->width / 2 },
     };
 
-    // Draw rotated ship via transform matrix
-    rlPushMatrix();
-    {
-        rlTranslatef(ship->position.x, ship->position.y, 0);
-        rlRotatef(ship->rotation, 0, 0, 1);
-        DrawTriangle(shipTriangle[0], shipTriangle[1], shipTriangle[2], RAYWHITE);
-    }
-    rlPopMatrix();
-
-    /* Manually transform each point
-    // Rotate points
+    // Transform ship triangle
     for (unsigned int i = 0; i < 3; i++)
     {
         shipTriangle[i] = Vector2Rotate(shipTriangle[i], ship->rotation * DEG2RAD);
         shipTriangle[i] = Vector2Add(shipTriangle[i], ship->position);
     }
     DrawTriangle(shipTriangle[0], shipTriangle[1], shipTriangle[2], RAYWHITE);
-    */
+
+    if (ship->edgeLooping)
+    {
+        Vector2 offsets[8] = {
+            { RENDER_WIDTH, 0 },               // right
+            { -RENDER_WIDTH, 0 },              // left
+            { 0, -RENDER_HEIGHT },             // up
+            { 0, RENDER_HEIGHT },              // down
+            { RENDER_WIDTH, -RENDER_HEIGHT },  // top-right
+            { -RENDER_WIDTH, -RENDER_HEIGHT }, // top-left
+            { RENDER_WIDTH, RENDER_HEIGHT },   // bottom-right
+            { -RENDER_WIDTH, RENDER_HEIGHT }   // bottom-left
+        };
+
+        for (int i = 0; i < 8; i++)
+        {
+            Vector2 cloneShip[3];
+            cloneShip[0] = Vector2Add(shipTriangle[0], offsets[i]);
+            cloneShip[1] = Vector2Add(shipTriangle[1], offsets[i]);
+            cloneShip[2] = Vector2Add(shipTriangle[2], offsets[i]);
+
+            DrawTriangle(cloneShip[0], cloneShip[1], cloneShip[2], RAYWHITE);
+        }
+    }
+
 }
 
 void ResetShip(SpaceShip *ship)
 {
     ship->position.x = RENDER_WIDTH / 2;
     ship->position.y = RENDER_HEIGHT / 2;
+    ship->rotation = GetRandomValue(0, 360);
 }

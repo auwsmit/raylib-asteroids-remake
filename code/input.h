@@ -8,7 +8,7 @@
 
 // Macros
 // ----------------------------------------------------------------------------
-#define INPUT_ACTIONS_COUNT 32 // Total number of game actions, e.g. confirm, pause, move up
+#define INPUT_ACTIONS_COUNT 32 // Maximum number of game actions, e.g. confirm, pause, move up
 #define INPUT_MAX_KEYS 32 // Maximum number of keys that can be assigned to an action
 
 // Types and Structures

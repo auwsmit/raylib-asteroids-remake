@@ -9,11 +9,12 @@
 // Macros
 // ----------------------------------------------------------------------------
 
-#define SHIP_WIDTH 100
-#define SHIP_LENGTH 150
-#define TURN_SPEED 180
-#define THRUST_SPEED 10
-#define SLOWDOWN_RATE 3
+#define SHIP_WIDTH 100.0f
+#define SHIP_LENGTH 150.0f
+#define SHIP_TURN_SPEED 180.0f // turn X degrees per second
+#define SHIP_THRUST_SPEED 5.0f
+#define SHIP_MAX_SPEED 10.0f
+#define SPACE_FRICTION 5.0f
 
 // Types and Structures
 // ----------------------------------------------------------------------------
@@ -28,15 +29,10 @@ typedef enum GameMode
     MODE_1PLAYER, MODE_2PLAYER, MODE_DEMO
 } GameMode;
 
-typedef enum GameDifficulty // Multiplier for CPU paddle speed
+typedef enum AsteroidsBeep
 {
-    DIFFICULTY_EASY, DIFFICULTY_MEDIUM, DIFFICULTY_HARD
-} GameDifficulty;
-
-typedef enum PongBeep
-{
-    BEEP_MENU, BEEP_PADDLE, BEEP_EDGE, BEEP_SCORE
-} PongBeep;
+    BEEP_MENU,
+} AsteroidsBeep;
 
 typedef struct SpaceShip
 {
@@ -46,11 +42,12 @@ typedef struct SpaceShip
     float rotation; // in degrees, 0 is pointing up, 90 is right
     float width;
     float length;
+    bool edgeLooping;
 } SpaceShip;
 
 typedef struct GameState
 {
-    Sound beeps[4];
+    Sound beeps[1];
     SpaceShip ship;
     float winTimer;   // countdown after player wins
     float scoreTimer; // countdown after a score
@@ -73,13 +70,15 @@ Sound GenBeep(float freq, float lengthSec); // Generate and allocate memory a si
 void FreeBeeps(void);
 
 // Collision
+bool IsShipOnEdge(SpaceShip *ship);
 
 // Update / User Input
-void UpdatePongFrame(void); // Updates all the game's data and objects for the current frame
+void UpdateAsteroidsFrame(void); // Updates all the game's data and objects for the current frame
+void UpdateShipPastEdge(SpaceShip *ship);
 void UpdateShip(SpaceShip *ship);
 
 // Draw
-void DrawPongFrame(void); // Draws all the game's objects for the current frame
+void DrawAsteroidsFrame(void); // Draws all the game's objects for the current frame
 void DrawSpaceShip(SpaceShip *ship);
 
 // Game functions

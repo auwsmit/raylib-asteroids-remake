@@ -7,7 +7,7 @@
 // Macros
 // ----------------------------------------------------------------------------
 
-#define WINDOW_TITLE "Pong Remake with raylib"
+#define WINDOW_TITLE "Asteroids Remake with raylib"
 
 #define ASPECT_RATIO (4.0f / 3.0f)
 #define RENDER_HEIGHT 1080 // The native resolution of the game itself

@@ -119,7 +119,7 @@ void UpdateDrawFrame(void)
                               break;
         case SCREEN_TITLE:    UpdateUiFrame();
                               break;
-        case SCREEN_GAMEPLAY: UpdatePongFrame();
+        case SCREEN_GAMEPLAY: UpdateAsteroidsFrame();
                               break;
         default: break;
     }
@@ -137,7 +137,7 @@ void UpdateDrawFrame(void)
                                   break;
             case SCREEN_TITLE:    DrawUiFrame();
                                   break;
-            case SCREEN_GAMEPLAY: DrawPongFrame();
+            case SCREEN_GAMEPLAY: DrawAsteroidsFrame();
                                   break;
             default: break;
         }
