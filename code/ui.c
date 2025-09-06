@@ -104,11 +104,9 @@ void FreeUiMenuButtons(void)
 
 void UpdateUiFrame(void)
 {
-    // Input to go back
     if (ui.currentMenu != UI_MENU_GAMEPLAY)
     {
-        if ((IsInputActionPressed(INPUT_ACTION_BACK) ||
-             IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) && ui.currentMenu != UI_MENU_TITLE)
+        if (IsInputActionPressed(INPUT_ACTION_BACK) && ui.currentMenu != UI_MENU_TITLE)
         {
             ChangeUiMenu(UI_MENU_TITLE);
             PlaySound(game.beeps[BEEP_MENU]);

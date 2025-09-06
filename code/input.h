@@ -9,7 +9,11 @@
 // Macros
 // ----------------------------------------------------------------------------
 #define INPUT_ACTIONS_COUNT 32 // Maximum number of game actions, e.g. confirm, pause, move up
-#define INPUT_MAX_KEYS 32 // Maximum number of keys that can be assigned to an action
+#define INPUT_MAX_MAPS 32 // Maximum number of inputs that can be mapped to an action
+
+// These are needed because MOUSE_LEFT_BUTTON is 0, which is the default null mapping value
+#define INPUT_MOUSE_NULL 7
+#define INPUT_MOUSE_LEFT_BUTTON 8
 
 // Types and Structures
 // ----------------------------------------------------------------------------
@@ -27,10 +31,11 @@ typedef enum InputAction
     INPUT_ACTION_RIGHT,
 } InputAction;
 
-typedef struct InputKeyMaps
+typedef struct InputMappings
 {
-    KeyboardKey keyMaps[INPUT_ACTIONS_COUNT][INPUT_MAX_KEYS];
-} InputKeyMaps;
+    KeyboardKey keyMaps[INPUT_ACTIONS_COUNT][INPUT_MAX_MAPS];
+    MouseButton mouseMaps[INPUT_ACTIONS_COUNT][INPUT_MAX_MAPS];
+} InputMappings;
 
 // Prototypes
 // ----------------------------------------------------------------------------

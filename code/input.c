@@ -4,11 +4,11 @@
 #include "input.h"
 
 // Global struct to track input key mappings
-InputKeyMaps gameInput = { 0 };
+InputMappings gameInput = { 0 };
 
 void InitDefaultInputControls(void)
 {
-    InputKeyMaps defaultControls =
+    InputMappings defaultControls =
     {
         // Global across program
         .keyMaps[INPUT_ACTION_FULLSCREEN] =
@@ -22,15 +22,17 @@ void InitDefaultInputControls(void)
 
         // Menu and Game
         .keyMaps[INPUT_ACTION_CONFIRM] = { KEY_ENTER, KEY_SPACE },
-        .keyMaps[INPUT_ACTION_BACK] =    { KEY_ESCAPE, KEY_BACKSPACE, },
-        .keyMaps[INPUT_ACTION_MENU_UP] =   { KEY_W, KEY_UP },
+        .keyMaps[INPUT_ACTION_BACK] = { KEY_ESCAPE, KEY_BACKSPACE, },
+        .mouseMaps[INPUT_ACTION_BACK] = { MOUSE_RIGHT_BUTTON },
+        .keyMaps[INPUT_ACTION_MENU_UP] = { KEY_W, KEY_UP },
         .keyMaps[INPUT_ACTION_MENU_DOWN] = { KEY_S, KEY_UP },
-        .keyMaps[INPUT_ACTION_PAUSE] =   { KEY_P },
+        .keyMaps[INPUT_ACTION_PAUSE] = { KEY_P },
 
         // Player 1 controls
         .keyMaps[INPUT_ACTION_LEFT] = { KEY_A, KEY_LEFT, },
-        .keyMaps[INPUT_ACTION_RIGHT] =   { KEY_D, KEY_RIGHT, },
-        .keyMaps[INPUT_ACTION_FORWARD] =   { KEY_W, KEY_UP, },
+        .keyMaps[INPUT_ACTION_RIGHT] = { KEY_D, KEY_RIGHT, },
+        .keyMaps[INPUT_ACTION_FORWARD] = { KEY_W, KEY_UP, },
+        .mouseMaps[INPUT_ACTION_FORWARD] = { INPUT_MOUSE_LEFT_BUTTON },
     };
 
     gameInput = defaultControls;
@@ -50,14 +52,14 @@ bool IsInputActionPressed(InputAction action)
     KeyboardKey* keys = gameInput.keyMaps[action];
 
     // Check potential key combinations
-    for (int i = 0; i < INPUT_MAX_KEYS && keys[i] != 0; i++)
+    for (int i = 0; i < INPUT_MAX_MAPS && keys[i] != 0; i++)
     {
         KeyboardKey key = keys[i];
 
         // Check modifier plus next key (only 1 modifier for now)
         if (IsInputKeyModifier(key))
         {
-            if ((i + 1 < INPUT_MAX_KEYS) && (keys[i + 1] != 0) &&
+            if ((i + 1 < INPUT_MAX_MAPS) && (keys[i + 1] != 0) &&
                 (!IsInputKeyModifier(keys[i + 1])))
             {
                 if (IsKeyDown(key) && IsKeyPressed(keys[i + 1]))
@@ -74,6 +76,18 @@ bool IsInputActionPressed(InputAction action)
             return true;
     }
 
+    // Check mouse buttons
+    MouseButton* mb = gameInput.mouseMaps[action];
+    for (int i = 0; i < INPUT_MAX_MAPS && mb[i] != 0; i++)
+    {
+        MouseButton button = mb[i];
+        if (button == 0) button = INPUT_MOUSE_NULL;
+        if (button == INPUT_MOUSE_LEFT_BUTTON)
+            button = MOUSE_LEFT_BUTTON;
+        if (IsMouseButtonPressed(button))
+            return true;
+    }
+
     return false;
 }
 
@@ -81,14 +95,14 @@ bool IsInputActionDown(InputAction action)
 {
     KeyboardKey* keys = gameInput.keyMaps[action];
 
-    for (int i = 0; i < INPUT_MAX_KEYS && keys[i] != 0; i++)
+    for (int i = 0; i < INPUT_MAX_MAPS && keys[i] != 0; i++)
     {
         KeyboardKey key = keys[i];
 
         // Check modifier plus next key (only 1 modifier for now)
         if (IsInputKeyModifier(key))
         {
-            if ((i + 1 < INPUT_MAX_KEYS) && (keys[i + 1] != 0) &&
+            if ((i + 1 < INPUT_MAX_MAPS) && (keys[i + 1] != 0) &&
                 (!IsInputKeyModifier(keys[i + 1])))
             {
                 if (IsKeyDown(key) && IsKeyDown(keys[i + 1]))
@@ -103,6 +117,19 @@ bool IsInputActionDown(InputAction action)
         else if (IsKeyDown(key))
             return true;
     }
+
+    // Check mouse buttons
+    MouseButton* mb = gameInput.mouseMaps[action];
+    for (int i = 0; i < INPUT_MAX_MAPS && mb[i] != 0; i++)
+    {
+        MouseButton button = mb[i];
+        if (button == 0) button = INPUT_MOUSE_NULL;
+        if (button == INPUT_MOUSE_LEFT_BUTTON)
+            button = MOUSE_LEFT_BUTTON;
+        if (IsMouseButtonDown(button))
+            return true;
+    }
+
     return false;
 }
 

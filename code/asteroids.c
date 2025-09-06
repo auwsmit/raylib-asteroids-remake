@@ -139,7 +139,7 @@ void UpdateGameFrame(void)
     if (IsKeyPressed(KEY_R))
         ResetShip(&game.ship);
 
-    if (IsInputActionPressed(INPUT_ACTION_BACK) || IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
+    if (IsInputActionPressed(INPUT_ACTION_BACK))
     {
         ChangeUiMenu(UI_MENU_TITLE);
         PlaySound(game.beeps[BEEP_MENU]);
@@ -201,7 +201,7 @@ void UpdateShip(SpaceShip *ship)
         ship->followMouse = false;
     }
 
-    if (IsInputActionDown(INPUT_ACTION_FORWARD) || IsMouseButtonDown(MOUSE_LEFT_BUTTON))
+    if (IsInputActionDown(INPUT_ACTION_FORWARD))
     {
         Vector2 newVelocity = (Vector2){ 0, SHIP_THRUST_SPEED * GetFrameTime() };
         newVelocity = Vector2Rotate(newVelocity, ship->rotation * DEG2RAD);
