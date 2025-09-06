@@ -18,7 +18,7 @@
 // ----------------------------------------------------------------------------
 RenderTexture2D renderTarget; // used to hold the rendering result to rescale window
 GameState game; // for game logic data
-UiState   gameUi;   // for user interface data
+UiState   ui;   // for user interface data
 
 // Local Functions Declaration
 // ----------------------------------------------------------------------------

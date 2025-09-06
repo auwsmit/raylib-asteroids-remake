@@ -121,9 +121,20 @@ bool IsShipOnEdge(SpaceShip *ship)
     return false;
 }
 
+bool IsRockOnEdge(Asteroid *rock)
+{
+    if ((rock->position.x - rock->size < 0) ||
+        (rock->position.x + rock->size > RENDER_WIDTH) ||
+        (rock->position.y - rock->size < 0) ||
+        (rock->position.y + rock->size > RENDER_HEIGHT))
+        return true; // Rock is past the edge
+
+    // Rock is not past edge
+    return false;
+}
+
 void UpdateGameFrame(void)
 {
-
     // Debug: reset ship
     if (IsKeyPressed(KEY_R))
         ResetShip(&game.ship);
@@ -142,7 +153,7 @@ void UpdateGameFrame(void)
         if (game.isPaused)
             ChangeUiMenu(UI_MENU_PAUSE);
         else
-            gameUi.currentMenu = UI_MENU_GAMEPLAY;
+            ui.currentMenu = UI_MENU_GAMEPLAY;
         PlaySound(game.beeps[BEEP_MENU]);
     }
 
@@ -154,7 +165,7 @@ void UpdateGameFrame(void)
         // Update rocks
         for (unsigned int i = 0; i < ARRAY_SIZE(game.rocks); i++)
         {
-            UpdateAsteroid(&game.rocks[i]);
+            UpdateRock(&game.rocks[i]);
         }
     }
 
@@ -215,9 +226,9 @@ void UpdateShip(SpaceShip *ship)
         ship->position.y -= RENDER_HEIGHT;
 }
 
-void UpdateAsteroid(Asteroid *rock)
+void UpdateRock(Asteroid *rock)
 {
-    rock->isAtScreenEdge = IsShipOnEdge(&game.ship);
+    rock->isAtScreenEdge = IsRockOnEdge(rock);
 
     Vector2 currentVelocity = (Vector2){ 0, ASTEROID_SPEED * GetFrameTime() };
     currentVelocity = Vector2Rotate(currentVelocity, rock->angle);
@@ -305,11 +316,14 @@ void DrawAsteroid(Asteroid *rock)
         { -RENDER_WIDTH, RENDER_HEIGHT }   // bottom-left
     };
 
-    for (int i = 0; i < 8; i++)
+    if (rock->isAtScreenEdge)
     {
-        DrawCircle(rock->position.x + offsets[i].x,
-                   rock->position.y + offsets[i].y,
-                   rock->size, RAYWHITE);
+        for (int i = 0; i < 8; i++)
+        {
+            DrawCircle(rock->position.x + offsets[i].x,
+                       rock->position.y + offsets[i].y,
+                       rock->size, RAYWHITE);
+        }
     }
 }
 

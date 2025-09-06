@@ -85,12 +85,13 @@ void FreeBeeps(void);
 
 // Collision
 bool IsShipOnEdge(SpaceShip *ship);
+bool IsRockOnEdge(Asteroid *rock);
 
 // Update / User Input
 void UpdateGameFrame(void); // Updates all the game's data and objects for the current frame
 void UpdateShipPastEdge(SpaceShip *ship);
 void UpdateShip(SpaceShip *ship);
-void UpdateAsteroid(Asteroid *rock);
+void UpdateRock(Asteroid *rock);
 
 // Draw
 void DrawGameFrame(void); // Draws all the game's objects for the current frame

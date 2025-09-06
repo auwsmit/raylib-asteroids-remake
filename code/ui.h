@@ -74,7 +74,7 @@ typedef struct UiState // Holds data for the title screen menu
     bool autoScroll;
 } UiState;
 
-extern UiState gameUi; // global declaration
+extern UiState ui; // global declaration
 
 // Prototypes
 // ----------------------------------------------------------------------------

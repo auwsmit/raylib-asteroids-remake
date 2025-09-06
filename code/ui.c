@@ -49,7 +49,7 @@ void InitUiState(void)
     InitUiMenuButtonRelative(resumeText, UI_PAUSE_SIZE, &uiDefaults.pause, -UI_PAUSE_SIZE, pauseMenu);
     InitUiMenuButtonRelative(toTitleText, UI_PAUSE_SIZE, &uiDefaults.pause, -UI_PAUSE_SIZE * 2 - UI_BUTTON_SPACING, pauseMenu);
 
-    gameUi = uiDefaults;
+    ui = uiDefaults;
 }
 
 UiButton InitUiTitle(char *text, UiButton *button)
@@ -98,30 +98,30 @@ UiButton *InitUiMenuButtonRelative(char* text, int fontSize, UiButton *originBut
 
 void FreeUiMenuButtons(void)
 {
-    for (unsigned int i = 0; i < ARRAY_SIZE(gameUi.menus); i++)
-        MemFree(gameUi.menus[i].buttons);
+    for (unsigned int i = 0; i < ARRAY_SIZE(ui.menus); i++)
+        MemFree(ui.menus[i].buttons);
 }
 
 void UpdateUiFrame(void)
 {
     // Input to go back
-    if (gameUi.currentMenu != UI_MENU_GAMEPLAY)
+    if (ui.currentMenu != UI_MENU_GAMEPLAY)
     {
         if ((IsInputActionPressed(INPUT_ACTION_BACK) ||
-             IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) && gameUi.currentMenu != UI_MENU_TITLE)
+             IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) && ui.currentMenu != UI_MENU_TITLE)
         {
             ChangeUiMenu(UI_MENU_TITLE);
             PlaySound(game.beeps[BEEP_MENU]);
         }
 
-        UiButton *selectedButton = &gameUi.menus[gameUi.currentMenu].buttons[gameUi.selectedId];
+        UiButton *selectedButton = &ui.menus[ui.currentMenu].buttons[ui.selectedId];
         UpdateUiButtonSelect(selectedButton);
         UpdateUiMenuTraverse();
     }
     else if (!game.isPaused)
     {
-        UpdateUiButtonMouseHover(&gameUi.pause);
-        UpdateUiButtonSelect(&gameUi.pause);
+        UpdateUiButtonMouseHover(&ui.pause);
+        UpdateUiButtonSelect(&ui.pause);
     }
 
     // Update pause fade animation
@@ -129,27 +129,27 @@ void UpdateUiFrame(void)
     static bool fadingOut = false;
     float fadeIncrement = (1.0f / fadeLength) * GetFrameTime();
 
-    if (gameUi.textFade >= 1.0f)
+    if (ui.textFade >= 1.0f)
         fadingOut = true;
-    else if (gameUi.textFade <= 0.0f)
+    else if (ui.textFade <= 0.0f)
         fadingOut = false;
     if (fadingOut)
         fadeIncrement *= -1;
 
-    gameUi.textFade += fadeIncrement;
+    ui.textFade += fadeIncrement;
 }
 
 void UpdateUiMenuTraverse(void)
 {
-    if (gameUi.currentMenu == UI_MENU_GAMEPLAY)
+    if (ui.currentMenu == UI_MENU_GAMEPLAY)
         return;
-    UiMenu *menu = &gameUi.menus[gameUi.currentMenu];
+    UiMenu *menu = &ui.menus[ui.currentMenu];
 
-    UiTitleMenuId prevId = gameUi.selectedId; // used to play beep
+    UiTitleMenuId prevId = ui.selectedId; // used to play beep
 
     // Move cursor via mouse
     bool mouseMoved = (Vector2Length(GetMouseDelta()) > 0);
-    if (mouseMoved || (gameUi.firstFrame && gameUi.lastSelectWithMouse))
+    if (mouseMoved || (ui.firstFrame && ui.lastSelectWithMouse))
     {
         Vector2 mouse = GetMousePosition();
         float scale = MIN((float)GetScreenWidth()/RENDER_WIDTH, (float)GetScreenHeight()/RENDER_HEIGHT);
@@ -165,9 +165,9 @@ void UpdateUiMenuTraverse(void)
 
             if (IsMouseWithinUiButton(mousePos, currentButton))
             {
-                gameUi.selectedId = i;
-                gameUi.autoScroll = false;
-                gameUi.lastSelectWithMouse = true;
+                ui.selectedId = i;
+                ui.autoScroll = false;
+                ui.lastSelectWithMouse = true;
             }
         }
     }
@@ -177,49 +177,49 @@ void UpdateUiMenuTraverse(void)
     bool isInputDown = IsInputActionDown(INPUT_ACTION_MENU_DOWN);
     const float autoScrollInitPause = 0.6f;
 
-    bool initialKeyPress = (!gameUi.autoScroll && gameUi.keyHeldTime == 0);
-    bool heldLongEnoughToRepeat = (gameUi.autoScroll && gameUi.keyHeldTime >= 0.1f);
+    bool initialKeyPress = (!ui.autoScroll && ui.keyHeldTime == 0);
+    bool heldLongEnoughToRepeat = (ui.autoScroll && ui.keyHeldTime >= 0.1f);
     if (initialKeyPress || heldLongEnoughToRepeat)
     {
         if (isInputUp)
         {
-            if (gameUi.selectedId > 0)
-                gameUi.selectedId--;
+            if (ui.selectedId > 0)
+                ui.selectedId--;
             else
-                gameUi.selectedId = menu->buttonCount - 1;
-            gameUi.keyHeldTime = 0;
-            gameUi.lastSelectWithMouse = false;
+                ui.selectedId = menu->buttonCount - 1;
+            ui.keyHeldTime = 0;
+            ui.lastSelectWithMouse = false;
         }
         if (isInputDown)
         {
-            if ((unsigned int)gameUi.selectedId < menu->buttonCount - 1)
-                gameUi.selectedId++;
+            if ((unsigned int)ui.selectedId < menu->buttonCount - 1)
+                ui.selectedId++;
             else
-                gameUi.selectedId = 0;
-            gameUi.keyHeldTime = 0.0f;
-            gameUi.lastSelectWithMouse = false;
+                ui.selectedId = 0;
+            ui.keyHeldTime = 0.0f;
+            ui.lastSelectWithMouse = false;
         }
     }
 
     // Update auto-scroll timer when holding keys
     if (isInputUp || isInputDown)
     {
-        gameUi.keyHeldTime += GetFrameTime();
-        if (gameUi.keyHeldTime >= autoScrollInitPause)
+        ui.keyHeldTime += GetFrameTime();
+        if (ui.keyHeldTime >= autoScrollInitPause)
         {
-            gameUi.autoScroll = true;
+            ui.autoScroll = true;
         }
     }
     else
     {
-        gameUi.keyHeldTime = 0;
-        gameUi.autoScroll = false;
+        ui.keyHeldTime = 0;
+        ui.autoScroll = false;
     }
 
-    if (gameUi.selectedId != prevId && !gameUi.firstFrame)
+    if (ui.selectedId != prevId && !ui.firstFrame)
         PlaySound(game.beeps[BEEP_MENU]);
 
-    gameUi.firstFrame = false;
+    ui.firstFrame = false;
 }
 
 void UpdateUiButtonMouseHover(UiButton *button)
@@ -257,7 +257,7 @@ void UpdateUiButtonSelect(UiButton *button)
     mousePos = Vector2Clamp(mousePos, (Vector2){ 0, 0 }, (Vector2){ (float)RENDER_WIDTH, (float)RENDER_HEIGHT });
 
     // Select pause button
-    if (gameUi.currentMenu == UI_MENU_GAMEPLAY && IsGestureDetected(GESTURE_TAP) &&
+    if (ui.currentMenu == UI_MENU_GAMEPLAY && IsGestureDetected(GESTURE_TAP) &&
          (!IsMouseButtonPressed(MOUSE_RIGHT_BUTTON) && IsMouseWithinUiButton(mousePos, button)))
     {
         ChangeUiMenu(UI_MENU_PAUSE);
@@ -268,27 +268,27 @@ void UpdateUiButtonSelect(UiButton *button)
         (IsGestureDetected(GESTURE_TAP) &&
          (!IsMouseButtonPressed(MOUSE_RIGHT_BUTTON) && IsMouseWithinUiButton(mousePos, button))))
     {
-        if (gameUi.currentMenu == UI_MENU_GAMEPLAY && !game.isPaused)
+        if (ui.currentMenu == UI_MENU_GAMEPLAY && !game.isPaused)
             return; // not a menu
 
-        if (gameUi.currentMenu == UI_MENU_PAUSE && !gameUi.firstFrame)
+        if (ui.currentMenu == UI_MENU_PAUSE && !ui.firstFrame)
         {
-            if (gameUi.selectedId == UI_BID_RESUME)
+            if (ui.selectedId == UI_BID_RESUME)
             {
                 game.isPaused = false;
-                gameUi.currentMenu = UI_MENU_GAMEPLAY;
+                ui.currentMenu = UI_MENU_GAMEPLAY;
             }
-            else if (gameUi.selectedId == UI_BID_BACKTOTITLE)
+            else if (ui.selectedId == UI_BID_BACKTOTITLE)
             {
                 ChangeUiMenu(UI_MENU_TITLE);
             }
         }
 
-        else if (gameUi.currentMenu == UI_MENU_TITLE)
+        else if (ui.currentMenu == UI_MENU_TITLE)
         {
-            if (gameUi.selectedId == UI_BID_EXIT)
+            if (ui.selectedId == UI_BID_EXIT)
                 game.gameShouldExit = true;
-            else if (gameUi.selectedId == UI_BID_START)
+            else if (ui.selectedId == UI_BID_START)
                 ChangeUiMenu(UI_MENU_GAMEPLAY);
         }
 
@@ -321,48 +321,48 @@ void ChangeUiMenu(UiMenuState newMenu)
             game.currentScreen = SCREEN_TITLE;
         }
 
-        gameUi.selectedId = UI_BID_START;
+        ui.selectedId = UI_BID_START;
     }
 
     else if (newMenu == UI_MENU_PAUSE)
     {
         game.isPaused = true;
-        gameUi.selectedId = UI_BID_RESUME;
+        ui.selectedId = UI_BID_RESUME;
     }
 
     else if (newMenu == UI_MENU_GAMEPLAY)
     {
-        // game.currentMode = (GameMode)gameUi.selectedId;
+        // game.currentMode = (GameMode)ui.selectedId;
         game.currentScreen = SCREEN_GAMEPLAY;
     }
 
-    gameUi.currentMenu = newMenu;
-    gameUi.firstFrame = true;
+    ui.currentMenu = newMenu;
+    ui.firstFrame = true;
 }
 
 void DrawUiFrame(void)
 {
     if (game.currentScreen == SCREEN_TITLE)
     {
-        for (unsigned int i = 0; i < ARRAY_SIZE(gameUi.title); i++)
-            DrawUiElement(&gameUi.title[i]);
+        for (unsigned int i = 0; i < ARRAY_SIZE(ui.title); i++)
+            DrawUiElement(&ui.title[i]);
     }
 
-    if (gameUi.currentMenu != UI_MENU_GAMEPLAY)
+    if (ui.currentMenu != UI_MENU_GAMEPLAY)
     {
-        UiMenu *menu = &gameUi.menus[gameUi.currentMenu];
+        UiMenu *menu = &ui.menus[ui.currentMenu];
         for (unsigned int i = 0; i < menu->buttonCount; i++)
             DrawUiElement(&menu->buttons[i]);
 
-        UiButton *selectedButton = &gameUi.menus[gameUi.currentMenu].buttons[gameUi.selectedId];
+        UiButton *selectedButton = &ui.menus[ui.currentMenu].buttons[ui.selectedId];
         DrawUiCursor(selectedButton);
     }
     else if (game.currentScreen == SCREEN_GAMEPLAY)
     {
         // Draw pause button
-        DrawUiElement(&gameUi.pause);
-        if (gameUi.pause.mouseHovered)
-            DrawUiCursor(&gameUi.pause);
+        DrawUiElement(&ui.pause);
+        if (ui.pause.mouseHovered)
+            DrawUiCursor(&ui.pause);
     }
 
     if (game.currentScreen == SCREEN_GAMEPLAY)
@@ -371,7 +371,7 @@ void DrawUiFrame(void)
         // DrawUiScores();
 
         // Fade animation
-        Color fadeColor = Fade(RAYWHITE, gameUi.textFade);
+        Color fadeColor = Fade(RAYWHITE, ui.textFade);
 
         // Draw pause message
         char *text;
