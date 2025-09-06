@@ -44,7 +44,7 @@ void UpdateRaylibLogo(void)
     if ((GetKeyPressed() != 0) || IsGestureDetected(GESTURE_TAP))
     {
         if (raylibLogo.state >= LOGO_TEXT)
-            asteroidGame.currentScreen = SCREEN_TITLE;
+            game.currentScreen = SCREEN_TITLE;
         else
         {
             raylibLogo.topSideRecWidth = RAYLIB_LOGO_WIDTH;
@@ -132,7 +132,7 @@ void UpdateRaylibLogo(void)
             break;
 
         case LOGO_END: // Animation is finished
-            asteroidGame.currentScreen = SCREEN_TITLE;
+            game.currentScreen = SCREEN_TITLE;
             break;
     }
 }

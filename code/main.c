@@ -17,8 +17,8 @@
 // Globals
 // ----------------------------------------------------------------------------
 RenderTexture2D renderTarget; // used to hold the rendering result to rescale window
-GameState asteroidGame; // for game logic data
-UiState   asteroidUi;   // for user interface data
+GameState game; // for game logic data
+UiState   gameUi;   // for user interface data
 
 // Local Functions Declaration
 // ----------------------------------------------------------------------------
@@ -39,7 +39,7 @@ int main(void)
 
     // Init the render texture, used to hold the rendering result so we can easily resize it
     renderTarget = LoadRenderTexture(RENDER_WIDTH, RENDER_HEIGHT);
-    SetTextureFilter(renderTarget.texture, TEXTURE_FILTER_BILINEAR); // Texture scale filter
+    SetTextureFilter(renderTarget.texture, TEXTURE_FILTER_BILINEAR);
 
     // Init everything else
     InitAudioDevice();
@@ -94,7 +94,7 @@ void RunGameLoopForPlatform(void)
     // ----------------------------------------------------------------------------
 
     // Main game loop
-    while (!WindowShouldClose() && !asteroidGame.gameShouldExit) // Detect window close button
+    while (!WindowShouldClose() && !game.gameShouldExit) // Detect window close button
     {
         UpdateDrawFrame();
     }
@@ -113,13 +113,13 @@ void UpdateDrawFrame(void)
     float renderPosX = (GetScreenWidth() - ((float)RENDER_WIDTH*renderScale))*0.5f;
     float renderPosY = (GetScreenHeight() - ((float)RENDER_HEIGHT*renderScale))*0.5f;
 
-    switch(asteroidGame.currentScreen)
+    switch(game.currentScreen)
     {
         case SCREEN_LOGO:     UpdateRaylibLogo();
                               break;
         case SCREEN_TITLE:    UpdateUiFrame();
                               break;
-        case SCREEN_GAMEPLAY: UpdateAsteroidsFrame();
+        case SCREEN_GAMEPLAY: UpdateGameFrame();
                               break;
         default: break;
     }
@@ -131,13 +131,13 @@ void UpdateDrawFrame(void)
     {
         ClearBackground(BLACK); // Default background color
 
-        switch(asteroidGame.currentScreen)
+        switch(game.currentScreen)
         {
             case SCREEN_LOGO:     DrawRaylibLogo();
                                   break;
             case SCREEN_TITLE:    DrawUiFrame();
                                   break;
-            case SCREEN_GAMEPLAY: DrawAsteroidsFrame();
+            case SCREEN_GAMEPLAY: DrawGameFrame();
                                   break;
             default: break;
         }

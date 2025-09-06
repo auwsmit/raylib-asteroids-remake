@@ -16,7 +16,7 @@
 
 void InitGameState(void)
 {
-    int randomAngle = GetRandomValue(0, 360);
+    float shipAngle = (float)GetRandomValue(0, 360);
 
     GameState defaultState =
     {
@@ -28,17 +28,28 @@ void InitGameState(void)
                 RENDER_WIDTH / 2,
                 RENDER_HEIGHT / 2,
             },
-
             .width = SHIP_WIDTH,
             .length = SHIP_LENGTH,
-            .rotation = randomAngle,
+            .rotation = shipAngle,
         },
+
     };
+
+    // random rocks
+    for (int i = 0; i < ASTEROID_AMOUNT; i++)
+    {
+        float rockPosX = (float)GetRandomValue(0, RENDER_WIDTH);
+        float rockPosY = (float)GetRandomValue(0, RENDER_HEIGHT);
+        defaultState.rocks[i].position = (Vector2){ rockPosX, rockPosY };
+        defaultState.rocks[i].angle = (float)GetRandomValue(0, 360);
+        defaultState.rocks[i].size = (float)GetRandomValue(10,100);
+        defaultState.rocks[i].speed = ASTEROID_SPEED;
+    }
 
     // Allocate memory for beep sine waves
     defaultState.beeps[BEEP_MENU] = GenBeep(300.0f, 0.03f);
 
-    asteroidGame = defaultState;
+    game = defaultState;
 }
 
 Sound GenBeep(float freq, float lengthSec)
@@ -83,8 +94,8 @@ Sound GenBeep(float freq, float lengthSec)
 
 void FreeBeeps(void)
 {
-    for (unsigned int i = 0; i < ARRAY_SIZE(asteroidGame.beeps); i++)
-        UnloadSound(asteroidGame.beeps[i]);
+    for (unsigned int i = 0; i < ARRAY_SIZE(game.beeps); i++)
+        UnloadSound(game.beeps[i]);
 }
 
 bool IsShipOnEdge(SpaceShip *ship)
@@ -110,62 +121,51 @@ bool IsShipOnEdge(SpaceShip *ship)
     return false;
 }
 
-void UpdateAsteroidsFrame(void)
+void UpdateGameFrame(void)
 {
 
     // Debug: reset ship
     if (IsKeyPressed(KEY_R))
-        ResetShip(&asteroidGame.ship);
+        ResetShip(&game.ship);
 
     if (IsInputActionPressed(INPUT_ACTION_BACK) || IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
     {
         ChangeUiMenu(UI_MENU_TITLE);
+        PlaySound(game.beeps[BEEP_MENU]);
         return; // back to main game loop: UpdateDrawFrame()
     }
 
     // Input to pause
     if (IsInputActionPressed(INPUT_ACTION_PAUSE))
     {
-        asteroidGame.isPaused = !asteroidGame.isPaused;
-        if (asteroidGame.isPaused)
+        game.isPaused = !game.isPaused;
+        if (game.isPaused)
             ChangeUiMenu(UI_MENU_PAUSE);
         else
-            asteroidUi.currentMenu = UI_MENU_GAMEPLAY;
-        PlaySound(asteroidGame.beeps[BEEP_MENU]);
+            gameUi.currentMenu = UI_MENU_GAMEPLAY;
+        PlaySound(game.beeps[BEEP_MENU]);
     }
 
-    if (!asteroidGame.isPaused)
+    if (!game.isPaused)
     {
         // Update ship
-        if (asteroidGame.ship.edgeLooping)
-            UpdateShipPastEdge(&asteroidGame.ship);
-        asteroidGame.ship.edgeLooping = IsShipOnEdge(&asteroidGame.ship);
-        UpdateShip(&asteroidGame.ship);
+        UpdateShip(&game.ship);
 
+        // Update rocks
+        for (unsigned int i = 0; i < ARRAY_SIZE(game.rocks); i++)
+        {
+            UpdateAsteroid(&game.rocks[i]);
+        }
     }
 
     // Update user interface elements and logic
     UpdateUiFrame();
 }
 
-void UpdateShipPastEdge(SpaceShip *ship)
-{
-    // set new position on opposite side of screen
-    if (ship->position.x < 0) // past left edge
-        ship->position.x += RENDER_WIDTH;
-
-    if (ship->position.x > RENDER_WIDTH) // past right edge
-        ship->position.x -= RENDER_WIDTH;
-
-    if (ship->position.y < 0) // past top edge
-        ship->position.y += RENDER_HEIGHT;
-
-    if (ship->position.y > RENDER_HEIGHT) // past bottom edge
-        ship->position.y -= RENDER_HEIGHT;
-}
-
 void UpdateShip(SpaceShip *ship)
 {
+    ship->isAtScreenEdge = IsShipOnEdge(&game.ship);
+
     if (IsInputActionDown(INPUT_ACTION_LEFT))
     {
         ship->rotation -= SHIP_TURN_SPEED * GetFrameTime();
@@ -203,12 +203,47 @@ void UpdateShip(SpaceShip *ship)
     {
         ship->velocity = (Vector2){ 0, 0 };
     }
+
+    // Loop ship past screen edge
+    if (ship->position.x < 0)            // past left edge
+        ship->position.x += RENDER_WIDTH;
+    if (ship->position.x > RENDER_WIDTH) // past right edge
+        ship->position.x -= RENDER_WIDTH;
+    if (ship->position.y < 0)            // past top edge
+        ship->position.y += RENDER_HEIGHT;
+    if (ship->position.y > RENDER_HEIGHT) // past bottom edge
+        ship->position.y -= RENDER_HEIGHT;
 }
 
-void DrawAsteroidsFrame(void)
+void UpdateAsteroid(Asteroid *rock)
+{
+    rock->isAtScreenEdge = IsShipOnEdge(&game.ship);
+
+    Vector2 currentVelocity = (Vector2){ 0, ASTEROID_SPEED * GetFrameTime() };
+    currentVelocity = Vector2Rotate(currentVelocity, rock->angle);
+    rock->position = Vector2Add(rock->position, currentVelocity);
+
+    // Loop ship past screen edge
+    if (rock->position.x < 0)             // past left edge
+        rock->position.x += RENDER_WIDTH;
+    if (rock->position.x > RENDER_WIDTH)  // past right edge
+        rock->position.x -= RENDER_WIDTH;
+    if (rock->position.y < 0)             // past top edge
+        rock->position.y += RENDER_HEIGHT;
+    if (rock->position.y > RENDER_HEIGHT) // past bottom edge
+        rock->position.y -= RENDER_HEIGHT;
+}
+
+void DrawGameFrame(void)
 {
     // Draw ship
-    DrawSpaceShip(&asteroidGame.ship);
+    DrawSpaceShip(&game.ship);
+
+    // Draw rocks
+    for (unsigned int i = 0; i < ASTEROID_AMOUNT; i++)
+    {
+        DrawAsteroid(&game.rocks[i]);
+    }
 
     // Draw user interface elements
     DrawUiFrame();
@@ -231,13 +266,13 @@ void DrawSpaceShip(SpaceShip *ship)
     }
     DrawTriangle(shipTriangle[0], shipTriangle[1], shipTriangle[2], RAYWHITE);
 
-    if (ship->edgeLooping)
+    if (ship->isAtScreenEdge)
     {
         Vector2 offsets[8] = {
-            { RENDER_WIDTH, 0 },               // right
-            { -RENDER_WIDTH, 0 },              // left
-            { 0, -RENDER_HEIGHT },             // up
-            { 0, RENDER_HEIGHT },              // down
+            { RENDER_WIDTH, 0 },   // right
+            { -RENDER_WIDTH, 0 },  // left
+            { 0, -RENDER_HEIGHT }, // up
+            { 0, RENDER_HEIGHT },  // down
             { RENDER_WIDTH, -RENDER_HEIGHT },  // top-right
             { -RENDER_WIDTH, -RENDER_HEIGHT }, // top-left
             { RENDER_WIDTH, RENDER_HEIGHT },   // bottom-right
@@ -254,12 +289,33 @@ void DrawSpaceShip(SpaceShip *ship)
             DrawTriangle(cloneShip[0], cloneShip[1], cloneShip[2], RAYWHITE);
         }
     }
+}
 
+void DrawAsteroid(Asteroid *rock)
+{
+    DrawCircle(rock->position.x, rock->position.y, rock->size, RAYWHITE);
+    Vector2 offsets[8] = {
+        { RENDER_WIDTH, 0 },   // right
+        { -RENDER_WIDTH, 0 },  // left
+        { 0, -RENDER_HEIGHT }, // up
+        { 0, RENDER_HEIGHT },  // down
+        { RENDER_WIDTH, -RENDER_HEIGHT },  // top-right
+        { -RENDER_WIDTH, -RENDER_HEIGHT }, // top-left
+        { RENDER_WIDTH, RENDER_HEIGHT },   // bottom-right
+        { -RENDER_WIDTH, RENDER_HEIGHT }   // bottom-left
+    };
+
+    for (int i = 0; i < 8; i++)
+    {
+        DrawCircle(rock->position.x + offsets[i].x,
+                   rock->position.y + offsets[i].y,
+                   rock->size, RAYWHITE);
+    }
 }
 
 void ResetShip(SpaceShip *ship)
 {
     ship->position.x = RENDER_WIDTH / 2;
     ship->position.y = RENDER_HEIGHT / 2;
-    ship->rotation = GetRandomValue(0, 360);
+    ship->rotation = (float)GetRandomValue(0, 360);
 }

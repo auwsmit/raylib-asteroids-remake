@@ -49,7 +49,7 @@ void InitUiState(void)
     InitUiMenuButtonRelative(resumeText, UI_PAUSE_SIZE, &uiDefaults.pause, -UI_PAUSE_SIZE, pauseMenu);
     InitUiMenuButtonRelative(toTitleText, UI_PAUSE_SIZE, &uiDefaults.pause, -UI_PAUSE_SIZE * 2 - UI_BUTTON_SPACING, pauseMenu);
 
-    asteroidUi = uiDefaults;
+    gameUi = uiDefaults;
 }
 
 UiButton InitUiTitle(char *text, UiButton *button)
@@ -98,30 +98,30 @@ UiButton *InitUiMenuButtonRelative(char* text, int fontSize, UiButton *originBut
 
 void FreeUiMenuButtons(void)
 {
-    for (unsigned int i = 0; i < ARRAY_SIZE(asteroidUi.menus); i++)
-        MemFree(asteroidUi.menus[i].buttons);
+    for (unsigned int i = 0; i < ARRAY_SIZE(gameUi.menus); i++)
+        MemFree(gameUi.menus[i].buttons);
 }
 
 void UpdateUiFrame(void)
 {
     // Input to go back
-    if (asteroidUi.currentMenu != UI_MENU_GAMEPLAY)
+    if (gameUi.currentMenu != UI_MENU_GAMEPLAY)
     {
         if ((IsInputActionPressed(INPUT_ACTION_BACK) ||
-             IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) && asteroidUi.currentMenu != UI_MENU_TITLE)
+             IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) && gameUi.currentMenu != UI_MENU_TITLE)
         {
             ChangeUiMenu(UI_MENU_TITLE);
-            PlaySound(asteroidGame.beeps[BEEP_MENU]);
+            PlaySound(game.beeps[BEEP_MENU]);
         }
 
-        UiButton *selectedButton = &asteroidUi.menus[asteroidUi.currentMenu].buttons[asteroidUi.selectedId];
+        UiButton *selectedButton = &gameUi.menus[gameUi.currentMenu].buttons[gameUi.selectedId];
         UpdateUiButtonSelect(selectedButton);
         UpdateUiMenuTraverse();
     }
-    else if (!asteroidGame.isPaused)
+    else if (!game.isPaused)
     {
-        UpdateUiButtonMouseHover(&asteroidUi.pause);
-        UpdateUiButtonSelect(&asteroidUi.pause);
+        UpdateUiButtonMouseHover(&gameUi.pause);
+        UpdateUiButtonSelect(&gameUi.pause);
     }
 
     // Update pause fade animation
@@ -129,27 +129,27 @@ void UpdateUiFrame(void)
     static bool fadingOut = false;
     float fadeIncrement = (1.0f / fadeLength) * GetFrameTime();
 
-    if (asteroidUi.textFade >= 1.0f)
+    if (gameUi.textFade >= 1.0f)
         fadingOut = true;
-    else if (asteroidUi.textFade <= 0.0f)
+    else if (gameUi.textFade <= 0.0f)
         fadingOut = false;
     if (fadingOut)
         fadeIncrement *= -1;
 
-    asteroidUi.textFade += fadeIncrement;
+    gameUi.textFade += fadeIncrement;
 }
 
 void UpdateUiMenuTraverse(void)
 {
-    if (asteroidUi.currentMenu == UI_MENU_GAMEPLAY)
+    if (gameUi.currentMenu == UI_MENU_GAMEPLAY)
         return;
-    UiMenu *menu = &asteroidUi.menus[asteroidUi.currentMenu];
+    UiMenu *menu = &gameUi.menus[gameUi.currentMenu];
 
-    UiTitleMenuId prevId = asteroidUi.selectedId; // used to play beep
+    UiTitleMenuId prevId = gameUi.selectedId; // used to play beep
 
     // Move cursor via mouse
     bool mouseMoved = (Vector2Length(GetMouseDelta()) > 0);
-    if (mouseMoved || (asteroidUi.firstFrame && asteroidUi.lastSelectWithMouse))
+    if (mouseMoved || (gameUi.firstFrame && gameUi.lastSelectWithMouse))
     {
         Vector2 mouse = GetMousePosition();
         float scale = MIN((float)GetScreenWidth()/RENDER_WIDTH, (float)GetScreenHeight()/RENDER_HEIGHT);
@@ -165,9 +165,9 @@ void UpdateUiMenuTraverse(void)
 
             if (IsMouseWithinUiButton(mousePos, currentButton))
             {
-                asteroidUi.selectedId = i;
-                asteroidUi.autoScroll = false;
-                asteroidUi.lastSelectWithMouse = true;
+                gameUi.selectedId = i;
+                gameUi.autoScroll = false;
+                gameUi.lastSelectWithMouse = true;
             }
         }
     }
@@ -177,49 +177,49 @@ void UpdateUiMenuTraverse(void)
     bool isInputDown = IsInputActionDown(INPUT_ACTION_MENU_DOWN);
     const float autoScrollInitPause = 0.6f;
 
-    bool initialKeyPress = (!asteroidUi.autoScroll && asteroidUi.keyHeldTime == 0);
-    bool heldLongEnoughToRepeat = (asteroidUi.autoScroll && asteroidUi.keyHeldTime >= 0.1f);
+    bool initialKeyPress = (!gameUi.autoScroll && gameUi.keyHeldTime == 0);
+    bool heldLongEnoughToRepeat = (gameUi.autoScroll && gameUi.keyHeldTime >= 0.1f);
     if (initialKeyPress || heldLongEnoughToRepeat)
     {
         if (isInputUp)
         {
-            if (asteroidUi.selectedId > 0)
-                asteroidUi.selectedId--;
+            if (gameUi.selectedId > 0)
+                gameUi.selectedId--;
             else
-                asteroidUi.selectedId = menu->buttonCount - 1;
-            asteroidUi.keyHeldTime = 0;
-            asteroidUi.lastSelectWithMouse = false;
+                gameUi.selectedId = menu->buttonCount - 1;
+            gameUi.keyHeldTime = 0;
+            gameUi.lastSelectWithMouse = false;
         }
         if (isInputDown)
         {
-            if ((unsigned int)asteroidUi.selectedId < menu->buttonCount - 1)
-                asteroidUi.selectedId++;
+            if ((unsigned int)gameUi.selectedId < menu->buttonCount - 1)
+                gameUi.selectedId++;
             else
-                asteroidUi.selectedId = 0;
-            asteroidUi.keyHeldTime = 0.0f;
-            asteroidUi.lastSelectWithMouse = false;
+                gameUi.selectedId = 0;
+            gameUi.keyHeldTime = 0.0f;
+            gameUi.lastSelectWithMouse = false;
         }
     }
 
     // Update auto-scroll timer when holding keys
     if (isInputUp || isInputDown)
     {
-        asteroidUi.keyHeldTime += GetFrameTime();
-        if (asteroidUi.keyHeldTime >= autoScrollInitPause)
+        gameUi.keyHeldTime += GetFrameTime();
+        if (gameUi.keyHeldTime >= autoScrollInitPause)
         {
-            asteroidUi.autoScroll = true;
+            gameUi.autoScroll = true;
         }
     }
     else
     {
-        asteroidUi.keyHeldTime = 0;
-        asteroidUi.autoScroll = false;
+        gameUi.keyHeldTime = 0;
+        gameUi.autoScroll = false;
     }
 
-    if (asteroidUi.selectedId != prevId && !asteroidUi.firstFrame)
-        PlaySound(asteroidGame.beeps[BEEP_MENU]);
+    if (gameUi.selectedId != prevId && !gameUi.firstFrame)
+        PlaySound(game.beeps[BEEP_MENU]);
 
-    asteroidUi.firstFrame = false;
+    gameUi.firstFrame = false;
 }
 
 void UpdateUiButtonMouseHover(UiButton *button)
@@ -237,7 +237,7 @@ void UpdateUiButtonMouseHover(UiButton *button)
     if (IsMouseWithinUiButton(mousePos, button))
     {
         if (!button->mouseHovered)
-            PlaySound(asteroidGame.beeps[BEEP_MENU]);
+            PlaySound(game.beeps[BEEP_MENU]);
         button->mouseHovered = true;
     }
     else
@@ -257,7 +257,7 @@ void UpdateUiButtonSelect(UiButton *button)
     mousePos = Vector2Clamp(mousePos, (Vector2){ 0, 0 }, (Vector2){ (float)RENDER_WIDTH, (float)RENDER_HEIGHT });
 
     // Select pause button
-    if (asteroidUi.currentMenu == UI_MENU_GAMEPLAY && IsGestureDetected(GESTURE_TAP) &&
+    if (gameUi.currentMenu == UI_MENU_GAMEPLAY && IsGestureDetected(GESTURE_TAP) &&
          (!IsMouseButtonPressed(MOUSE_RIGHT_BUTTON) && IsMouseWithinUiButton(mousePos, button)))
     {
         ChangeUiMenu(UI_MENU_PAUSE);
@@ -268,31 +268,31 @@ void UpdateUiButtonSelect(UiButton *button)
         (IsGestureDetected(GESTURE_TAP) &&
          (!IsMouseButtonPressed(MOUSE_RIGHT_BUTTON) && IsMouseWithinUiButton(mousePos, button))))
     {
-        if (asteroidUi.currentMenu == UI_MENU_GAMEPLAY && !asteroidGame.isPaused)
+        if (gameUi.currentMenu == UI_MENU_GAMEPLAY && !game.isPaused)
             return; // not a menu
 
-        if (asteroidUi.currentMenu == UI_MENU_PAUSE && !asteroidUi.firstFrame)
+        if (gameUi.currentMenu == UI_MENU_PAUSE && !gameUi.firstFrame)
         {
-            if (asteroidUi.selectedId == UI_BID_RESUME)
+            if (gameUi.selectedId == UI_BID_RESUME)
             {
-                asteroidGame.isPaused = false;
-                asteroidUi.currentMenu = UI_MENU_GAMEPLAY;
+                game.isPaused = false;
+                gameUi.currentMenu = UI_MENU_GAMEPLAY;
             }
-            else if (asteroidUi.selectedId == UI_BID_BACKTOTITLE)
+            else if (gameUi.selectedId == UI_BID_BACKTOTITLE)
             {
                 ChangeUiMenu(UI_MENU_TITLE);
             }
         }
 
-        else if (asteroidUi.currentMenu == UI_MENU_TITLE)
+        else if (gameUi.currentMenu == UI_MENU_TITLE)
         {
-            if (asteroidUi.selectedId == UI_BID_EXIT)
-                asteroidGame.gameShouldExit = true;
-            else if (asteroidUi.selectedId == UI_BID_START)
+            if (gameUi.selectedId == UI_BID_EXIT)
+                game.gameShouldExit = true;
+            else if (gameUi.selectedId == UI_BID_START)
                 ChangeUiMenu(UI_MENU_GAMEPLAY);
         }
 
-        PlaySound(asteroidGame.beeps[BEEP_MENU]);
+        PlaySound(game.beeps[BEEP_MENU]);
     }
 }
 
@@ -314,68 +314,68 @@ void ChangeUiMenu(UiMenuState newMenu)
     if (newMenu == UI_MENU_TITLE)
     {
         // Clear old game state if returning from gameplay
-        if (asteroidGame.currentScreen == SCREEN_GAMEPLAY)
+        if (game.currentScreen == SCREEN_GAMEPLAY)
         {
             FreeBeeps();
             InitGameState();
-            asteroidGame.currentScreen = SCREEN_TITLE;
+            game.currentScreen = SCREEN_TITLE;
         }
 
-        asteroidUi.selectedId = UI_BID_START;
+        gameUi.selectedId = UI_BID_START;
     }
 
     else if (newMenu == UI_MENU_PAUSE)
     {
-        asteroidGame.isPaused = true;
-        asteroidUi.selectedId = UI_BID_RESUME;
+        game.isPaused = true;
+        gameUi.selectedId = UI_BID_RESUME;
     }
 
     else if (newMenu == UI_MENU_GAMEPLAY)
     {
-        // asteroidGame.currentMode = (GameMode)asteroidUi.selectedId;
-        asteroidGame.currentScreen = SCREEN_GAMEPLAY;
+        // game.currentMode = (GameMode)gameUi.selectedId;
+        game.currentScreen = SCREEN_GAMEPLAY;
     }
 
-    asteroidUi.currentMenu = newMenu;
-    asteroidUi.firstFrame = true;
+    gameUi.currentMenu = newMenu;
+    gameUi.firstFrame = true;
 }
 
 void DrawUiFrame(void)
 {
-    if (asteroidGame.currentScreen == SCREEN_TITLE)
+    if (game.currentScreen == SCREEN_TITLE)
     {
-        for (unsigned int i = 0; i < ARRAY_SIZE(asteroidUi.title); i++)
-            DrawUiElement(&asteroidUi.title[i]);
+        for (unsigned int i = 0; i < ARRAY_SIZE(gameUi.title); i++)
+            DrawUiElement(&gameUi.title[i]);
     }
 
-    if (asteroidUi.currentMenu != UI_MENU_GAMEPLAY)
+    if (gameUi.currentMenu != UI_MENU_GAMEPLAY)
     {
-        UiMenu *menu = &asteroidUi.menus[asteroidUi.currentMenu];
+        UiMenu *menu = &gameUi.menus[gameUi.currentMenu];
         for (unsigned int i = 0; i < menu->buttonCount; i++)
             DrawUiElement(&menu->buttons[i]);
 
-        UiButton *selectedButton = &asteroidUi.menus[asteroidUi.currentMenu].buttons[asteroidUi.selectedId];
+        UiButton *selectedButton = &gameUi.menus[gameUi.currentMenu].buttons[gameUi.selectedId];
         DrawUiCursor(selectedButton);
     }
-    else if (asteroidGame.currentScreen == SCREEN_GAMEPLAY)
+    else if (game.currentScreen == SCREEN_GAMEPLAY)
     {
         // Draw pause button
-        DrawUiElement(&asteroidUi.pause);
-        if (asteroidUi.pause.mouseHovered)
-            DrawUiCursor(&asteroidUi.pause);
+        DrawUiElement(&gameUi.pause);
+        if (gameUi.pause.mouseHovered)
+            DrawUiCursor(&gameUi.pause);
     }
 
-    if (asteroidGame.currentScreen == SCREEN_GAMEPLAY)
+    if (game.currentScreen == SCREEN_GAMEPLAY)
     {
         // Draw score
-        DrawUiScores();
+        // DrawUiScores();
 
         // Fade animation
-        Color fadeColor = Fade(RAYWHITE, asteroidUi.textFade);
+        Color fadeColor = Fade(RAYWHITE, gameUi.textFade);
 
         // Draw pause message
         char *text;
-        if (asteroidGame.isPaused)
+        if (game.isPaused)
         {
             text = "PAUSED";
             int textOffset = MeasureText(text, SCORE_FONT_SIZE) / 2;
@@ -383,7 +383,7 @@ void DrawUiFrame(void)
                      RENDER_HEIGHT / 2 - SCORE_FONT_SIZE / 2,
                      SCORE_FONT_SIZE, fadeColor);
         }
-        else if (asteroidGame.currentMode == MODE_DEMO) // Draw demo mode message
+        else if (game.currentMode == MODE_DEMO) // Draw demo mode message
         {
             text = "DEMO MODE";
             int textOffset = MeasureText(text, SCORE_FONT_SIZE) / 2;
@@ -422,11 +422,11 @@ void DrawUiScores(void)
 {
     int fontSize = 180;
 
-    const char *scoreLMsg = TextFormat("%i", asteroidGame.scoreL);
+    const char *scoreLMsg = TextFormat("%i", game.scoreL);
     int scoreLWidth = MeasureText(scoreLMsg, fontSize);
     int scoreLPosX = RENDER_WIDTH / 4 - scoreLWidth / 2;
 
-    const char *scoreRMsg = TextFormat("%i", asteroidGame.scoreR);
+    const char *scoreRMsg = TextFormat("%i", game.scoreR);
     int scoreRWidth = MeasureText(scoreRMsg, fontSize);
     int scoreRPosX = RENDER_WIDTH / 4 * 3 - scoreRWidth / 2;
 

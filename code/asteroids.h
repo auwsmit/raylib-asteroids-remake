@@ -16,6 +16,9 @@
 #define SHIP_MAX_SPEED 10.0f
 #define SPACE_FRICTION 5.0f
 
+#define ASTEROID_AMOUNT 8
+#define ASTEROID_SPEED 300.0f
+
 // Types and Structures
 // ----------------------------------------------------------------------------
 
@@ -29,26 +32,37 @@ typedef enum GameMode
     MODE_1PLAYER, MODE_2PLAYER, MODE_DEMO
 } GameMode;
 
-typedef enum AsteroidsBeep
+typedef enum GameBeep
 {
     BEEP_MENU,
-} AsteroidsBeep;
+} GameBeep;
 
 typedef struct SpaceShip
 {
     Vector2 position;
     Vector2 velocity;
-    float velocityRot;
     float rotation; // in degrees, 0 is pointing up, 90 is right
     float width;
     float length;
-    bool edgeLooping;
+    bool isAtScreenEdge;
 } SpaceShip;
+
+typedef struct Asteroid
+{
+    Vector2 position;
+    Vector2 velocity;
+    float angle;
+    float speed;
+    float size;
+    unsigned int life;
+    bool isAtScreenEdge;
+} Asteroid;
 
 typedef struct GameState
 {
     Sound beeps[1];
     SpaceShip ship;
+    Asteroid rocks[ASTEROID_AMOUNT];
     float winTimer;   // countdown after player wins
     float scoreTimer; // countdown after a score
     GameMode currentMode;
@@ -59,7 +73,7 @@ typedef struct GameState
     bool gameShouldExit;
 } GameState;
 
-extern GameState asteroidGame; // global declaration
+extern GameState game; // global declaration
 
 // Prototypes
 // ----------------------------------------------------------------------------
@@ -73,13 +87,15 @@ void FreeBeeps(void);
 bool IsShipOnEdge(SpaceShip *ship);
 
 // Update / User Input
-void UpdateAsteroidsFrame(void); // Updates all the game's data and objects for the current frame
+void UpdateGameFrame(void); // Updates all the game's data and objects for the current frame
 void UpdateShipPastEdge(SpaceShip *ship);
 void UpdateShip(SpaceShip *ship);
+void UpdateAsteroid(Asteroid *rock);
 
 // Draw
-void DrawAsteroidsFrame(void); // Draws all the game's objects for the current frame
+void DrawGameFrame(void); // Draws all the game's objects for the current frame
 void DrawSpaceShip(SpaceShip *ship);
+void DrawAsteroid(Asteroid *rock);
 
 // Game functions
 void ResetShip(SpaceShip *ship);
