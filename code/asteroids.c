@@ -163,7 +163,7 @@ void UpdateGameFrame(void)
         UpdateShip(&game.ship);
 
         // Update rocks
-        for (unsigned int i = 0; i < ARRAY_SIZE(game.rocks); i++)
+        for (unsigned int i = 0; i < ASTEROID_AMOUNT; i++)
         {
             UpdateRock(&game.rocks[i]);
         }
@@ -175,18 +175,33 @@ void UpdateGameFrame(void)
 
 void UpdateShip(SpaceShip *ship)
 {
-    ship->isAtScreenEdge = IsShipOnEdge(&game.ship);
+    ship->isAtScreenEdge = IsShipOnEdge(ship);
 
+    // Player Input
+    if (Vector2Length(GetMouseDelta()) != 0 || ship->followMouse)
+    {
+        ship->followMouse = true;
+        Vector2 mouse = GetMousePosition();
+        float scale = MIN((float)GetScreenWidth()/RENDER_WIDTH, (float)GetScreenHeight()/RENDER_HEIGHT);
+        Vector2 mousePos = { 0 };
+        mousePos.x = (mouse.x - (GetScreenWidth() - (RENDER_WIDTH*scale))*0.5f)/scale;
+        mousePos.y = (mouse.y - (GetScreenHeight() - (RENDER_HEIGHT*scale))*0.5f)/scale;
+        mousePos = Vector2Clamp(mousePos, (Vector2){ 0, 0 }, (Vector2){ (float)RENDER_WIDTH, (float)RENDER_HEIGHT });
+        Vector2 mouseDirection = Vector2Subtract(mousePos, ship->position);
+        ship->rotation = atan2(mouseDirection.y, mouseDirection.x) * RAD2DEG + 90;
+    }
     if (IsInputActionDown(INPUT_ACTION_LEFT))
     {
         ship->rotation -= SHIP_TURN_SPEED * GetFrameTime();
+        ship->followMouse = false;
     }
     if (IsInputActionDown(INPUT_ACTION_RIGHT))
     {
         ship->rotation += SHIP_TURN_SPEED * GetFrameTime();
+        ship->followMouse = false;
     }
 
-    if (IsInputActionDown(INPUT_ACTION_FORWARD))
+    if (IsInputActionDown(INPUT_ACTION_FORWARD) || IsMouseButtonDown(MOUSE_LEFT_BUTTON))
     {
         Vector2 newVelocity = (Vector2){ 0, SHIP_THRUST_SPEED * GetFrameTime() };
         newVelocity = Vector2Rotate(newVelocity, ship->rotation * DEG2RAD);

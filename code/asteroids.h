@@ -45,6 +45,7 @@ typedef struct SpaceShip
     float width;
     float length;
     bool isAtScreenEdge;
+    bool followMouse;
 } SpaceShip;
 
 typedef struct Asteroid
