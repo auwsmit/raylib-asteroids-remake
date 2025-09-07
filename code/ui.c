@@ -43,8 +43,8 @@ void InitUiState(void)
     const int pauseTextLength = MeasureText(pauseText, UI_PAUSE_SIZE);
     uiDefaults.pause =
         InitUiButton(pauseText, UI_PAUSE_SIZE,
-                     (float)RENDER_WIDTH / 4 - pauseTextLength / 2,
-                     (float)RENDER_HEIGHT - (UI_PAUSE_SIZE * 2));
+                     (float)VIRTUAL_WIDTH / 4 - pauseTextLength / 2,
+                     (float)VIRTUAL_HEIGHT - (UI_PAUSE_SIZE * 2));
 
     InitUiMenuButtonRelative(resumeText, UI_PAUSE_SIZE, &uiDefaults.pause, -UI_PAUSE_SIZE, pauseMenu);
     InitUiMenuButtonRelative(toTitleText, UI_PAUSE_SIZE, &uiDefaults.pause, -UI_PAUSE_SIZE * 2 - UI_BUTTON_SPACING, pauseMenu);
@@ -56,7 +56,7 @@ UiButton InitUiTitle(char *text, UiButton *button)
 {
     int fontSize = UI_TITLE_SIZE;
     int textWidth = MeasureText(text, fontSize);
-    float titlePosX = (RENDER_WIDTH - (float)textWidth) / 2;
+    float titlePosX = (VIRTUAL_WIDTH - (float)textWidth) / 2;
 #if !defined(PLATFORM_WEB) // different spacing for web
         float titlePosY = UI_TITLE_SPACE_FROM_TOP;
 #else
@@ -150,11 +150,11 @@ void UpdateUiMenuTraverse(void)
     if (mouseMoved || (ui.firstFrame && ui.lastSelectWithMouse))
     {
         Vector2 mouse = GetMousePosition();
-        float scale = MIN((float)GetScreenWidth()/RENDER_WIDTH, (float)GetScreenHeight()/RENDER_HEIGHT);
+        float scale = MIN((float)GetScreenWidth()/VIRTUAL_WIDTH, (float)GetScreenHeight()/VIRTUAL_HEIGHT);
         Vector2 mousePos = { 0 };
-        mousePos.x = (mouse.x - (GetScreenWidth() - (RENDER_WIDTH*scale))*0.5f)/scale;
-        mousePos.y = (mouse.y - (GetScreenHeight() - (RENDER_HEIGHT*scale))*0.5f)/scale;
-        mousePos = Vector2Clamp(mousePos, (Vector2){ 0, 0 }, (Vector2){ (float)RENDER_WIDTH, (float)RENDER_HEIGHT });
+        mousePos.x = (mouse.x - (GetScreenWidth() - (VIRTUAL_WIDTH*scale))*0.5f)/scale;
+        mousePos.y = (mouse.y - (GetScreenHeight() - (VIRTUAL_HEIGHT*scale))*0.5f)/scale;
+        mousePos = Vector2Clamp(mousePos, (Vector2){ 0, 0 }, (Vector2){ (float)VIRTUAL_WIDTH, (float)VIRTUAL_HEIGHT });
 
         for (unsigned int i = 0; i < menu->buttonCount; i++)
         {
@@ -226,11 +226,11 @@ void UpdateUiButtonMouseHover(UiButton *button)
     if (!mouseMoved) return;
 
     Vector2 mouse = GetMousePosition();
-    float scale = MIN((float)GetScreenWidth()/RENDER_WIDTH, (float)GetScreenHeight()/RENDER_HEIGHT);
+    float scale = MIN((float)GetScreenWidth()/VIRTUAL_WIDTH, (float)GetScreenHeight()/VIRTUAL_HEIGHT);
     Vector2 mousePos = { 0 };
-    mousePos.x = (mouse.x - (GetScreenWidth() - (RENDER_WIDTH*scale))*0.5f)/scale;
-    mousePos.y = (mouse.y - (GetScreenHeight() - (RENDER_HEIGHT*scale))*0.5f)/scale;
-    mousePos = Vector2Clamp(mousePos, (Vector2){ 0, 0 }, (Vector2){ (float)RENDER_WIDTH, (float)RENDER_HEIGHT });
+    mousePos.x = (mouse.x - (GetScreenWidth() - (VIRTUAL_WIDTH*scale))*0.5f)/scale;
+    mousePos.y = (mouse.y - (GetScreenHeight() - (VIRTUAL_HEIGHT*scale))*0.5f)/scale;
+    mousePos = Vector2Clamp(mousePos, (Vector2){ 0, 0 }, (Vector2){ (float)VIRTUAL_WIDTH, (float)VIRTUAL_HEIGHT });
 
     if (IsMouseWithinUiButton(mousePos, button))
     {
@@ -248,11 +248,11 @@ void UpdateUiButtonSelect(UiButton *button)
 {
 
     Vector2 mouse = GetMousePosition();
-    float scale = MIN((float)GetScreenWidth()/RENDER_WIDTH, (float)GetScreenHeight()/RENDER_HEIGHT);
+    float scale = MIN((float)GetScreenWidth()/VIRTUAL_WIDTH, (float)GetScreenHeight()/VIRTUAL_HEIGHT);
     Vector2 mousePos = { 0 };
-    mousePos.x = (mouse.x - (GetScreenWidth() - (RENDER_WIDTH*scale))*0.5f)/scale;
-    mousePos.y = (mouse.y - (GetScreenHeight() - (RENDER_HEIGHT*scale))*0.5f)/scale;
-    mousePos = Vector2Clamp(mousePos, (Vector2){ 0, 0 }, (Vector2){ (float)RENDER_WIDTH, (float)RENDER_HEIGHT });
+    mousePos.x = (mouse.x - (GetScreenWidth() - (VIRTUAL_WIDTH*scale))*0.5f)/scale;
+    mousePos.y = (mouse.y - (GetScreenHeight() - (VIRTUAL_HEIGHT*scale))*0.5f)/scale;
+    mousePos = Vector2Clamp(mousePos, (Vector2){ 0, 0 }, (Vector2){ (float)VIRTUAL_WIDTH, (float)VIRTUAL_HEIGHT });
 
     // Select pause button
     if (ui.currentMenu == UI_MENU_GAMEPLAY && IsGestureDetected(GESTURE_TAP) &&
@@ -377,16 +377,16 @@ void DrawUiFrame(void)
         {
             text = "PAUSED";
             int textOffset = MeasureText(text, SCORE_FONT_SIZE) / 2;
-            DrawText(text, RENDER_WIDTH / 2 - textOffset,
-                     RENDER_HEIGHT / 2 - SCORE_FONT_SIZE / 2,
+            DrawText(text, VIRTUAL_WIDTH / 2 - textOffset,
+                     VIRTUAL_HEIGHT / 2 - SCORE_FONT_SIZE / 2,
                      SCORE_FONT_SIZE, fadeColor);
         }
         else if (game.currentMode == MODE_DEMO) // Draw demo mode message
         {
             text = "DEMO MODE";
             int textOffset = MeasureText(text, SCORE_FONT_SIZE) / 2;
-            DrawText(text, RENDER_WIDTH / 2 - textOffset,
-                     RENDER_HEIGHT / 2 - SCORE_FONT_SIZE / 2,
+            DrawText(text, VIRTUAL_WIDTH / 2 - textOffset,
+                     VIRTUAL_HEIGHT / 2 - SCORE_FONT_SIZE / 2,
                      SCORE_FONT_SIZE, fadeColor);
         }
 
@@ -422,11 +422,11 @@ void DrawUiScores(void)
 
     const char *scoreLMsg = TextFormat("%i", game.scoreL);
     int scoreLWidth = MeasureText(scoreLMsg, fontSize);
-    int scoreLPosX = RENDER_WIDTH / 4 - scoreLWidth / 2;
+    int scoreLPosX = VIRTUAL_WIDTH / 4 - scoreLWidth / 2;
 
     const char *scoreRMsg = TextFormat("%i", game.scoreR);
     int scoreRWidth = MeasureText(scoreRMsg, fontSize);
-    int scoreRPosX = RENDER_WIDTH / 4 * 3 - scoreRWidth / 2;
+    int scoreRPosX = VIRTUAL_WIDTH / 4 * 3 - scoreRWidth / 2;
 
     int scorePosY = 50;
     DrawText(scoreLMsg, scoreLPosX, scorePosY, fontSize, RAYWHITE);

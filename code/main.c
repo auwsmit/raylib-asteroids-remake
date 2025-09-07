@@ -4,27 +4,31 @@
 
 #include "raylib.h"
 
-#include "config.h"  // Program config, e.g. window title/size, fps, vsync
-#include "input.h"   // Input controls / key mappings
-#include "logo.h"    // Raylib logo animation
-#include "ui.h"      // User interface (menus and buttons)
-#include "asteroids.h"    // Game logic
+#include "config.h" // Program config, e.g. window title/size, fps, vsync
+#include "input.h"  // Input controls / key mappings
+#include "logo.h"   // Raylib logo animation
+#include "ui.h"     // User interface (menus and buttons)
+#include "asteroids.h"
 
 #if defined(PLATFORM_WEB) // for compiling to wasm (web assembly)
     #include <emscripten/emscripten.h>
 #endif
 
+typedef struct Viewport {
+    int width, height, x, y;
+} Viewport;
+
 // Globals
 // ----------------------------------------------------------------------------
-RenderTexture2D renderTarget; // used to hold the rendering result to rescale window
-GameState game; // for game logic data
-UiState   ui;   // for user interface data
+GameState game; // game data
+UiState   ui;   // user interface data
+Viewport  view; // for rendering within aspect ratio
 
 // Local Functions Declaration
 // ----------------------------------------------------------------------------
 void CreateNewWindow(void); // Creates a new window with the proper initial settings
-void RunGameLoopForPlatform(void); // Runs the game loop depending on platform,
-                                   // this is just for emscripten's main function
+void RunGameLoopForPlatform(void); // Runs the game loop depending on platform
+void UpdateCameraViewport(void);
 
 void UpdateDrawFrame(void); // Update and Draw the current frame
                             // Most of the game loop's code is found in here
@@ -36,12 +40,6 @@ int main(void)
     // Initialization
     // ----------------------------------------------------------------------------
     CreateNewWindow();
-
-    // Init the render texture, used to hold the rendering result so we can easily resize it
-    renderTarget = LoadRenderTexture(RENDER_WIDTH, RENDER_HEIGHT);
-    SetTextureFilter(renderTarget.texture, TEXTURE_FILTER_BILINEAR);
-
-    // Init everything else
     InitAudioDevice();
     InitDefaultInputControls();
     InitRaylibLogo();
@@ -63,7 +61,6 @@ int main(void)
     FreeBeeps();
     FreeUiMenuButtons();
     CloseAudioDevice();
-    UnloadRenderTexture(renderTarget);
     CloseWindow(); // Close window and OpenGL context
 
     return 0;
@@ -101,17 +98,40 @@ void RunGameLoopForPlatform(void)
 #endif
 }
 
+void UpdateCameraViewport(void)
+{
+    float winWidth = (float)GetScreenWidth();
+    float winHeight = (float)GetScreenHeight();
+    float windowAspect = winWidth / winHeight;
+
+    if (windowAspect > ASPECT_RATIO)
+    {
+        // Window too wide → pillarbox
+        view.height = (int)winHeight;
+        view.width = (int)(winHeight * ASPECT_RATIO);
+        view.x = (winWidth - view.width) / 2;
+        view.y = 0;
+    }
+    else
+    {
+        // Window too tall → letterbox
+        view.width = winWidth;
+        view.height = (int)(winWidth / ASPECT_RATIO);
+        view.x = 0;
+        view.y = (winHeight - view.height) / 2;
+    }
+
+    game.camera.offset = (Vector2){ view.x + view.width/2.0f, view.y + view.height/2.0f };
+    game.camera.zoom   = (float)view.width / VIRTUAL_WIDTH;
+}
+
 // Update data and draw elements to the screen for the current frame
 void UpdateDrawFrame(void)
 {
     // Update
     // ----------------------------------------------------------------------------
     HandleToggleFullscreen();
-
-    // Compute required framebuffer scaling
-    float renderScale = MIN((float)GetScreenWidth()/RENDER_WIDTH, (float)GetScreenHeight()/RENDER_HEIGHT);
-    float renderPosX = (GetScreenWidth() - ((float)RENDER_WIDTH*renderScale))*0.5f;
-    float renderPosY = (GetScreenHeight() - ((float)RENDER_HEIGHT*renderScale))*0.5f;
+    UpdateCameraViewport();
 
     switch(game.currentScreen)
     {
@@ -127,35 +147,25 @@ void UpdateDrawFrame(void)
     // Draw
     // ----------------------------------------------------------------------------
 
-    BeginTextureMode(renderTarget); // Draw to the render texture for screen scaling
-    {
-        ClearBackground(BLACK); // Default background color
-
-        switch(game.currentScreen)
-        {
-            case SCREEN_LOGO:     DrawRaylibLogo();
-                                  break;
-            case SCREEN_TITLE:    DrawUiFrame();
-                                  break;
-            case SCREEN_GAMEPLAY: DrawGameFrame();
-                                  break;
-            default: break;
-        }
-    } EndTextureMode();
-
     BeginDrawing(); // Draw to screen
-    {
-        // Fill in any potential area outside of the render texture
-        ClearBackground(BLACK); // Default background color
+        BeginScissorMode(view.x, // Draw within aspect ratio
+                         view.y, view.width, view.height);
+            BeginMode2D(game.camera); // Scale to camera view
 
-        // Draw render texture to screen, properly scaled
-        DrawTexturePro(renderTarget.texture,
-                       (Rectangle){ 0.0f, 0.0f, (float)renderTarget.texture.width, (float)-renderTarget.texture.height },
-                       (Rectangle){ renderPosX, renderPosY, (float)RENDER_WIDTH*renderScale, (float)RENDER_HEIGHT*renderScale },
-                       (Vector2){ 0, 0 }, 0.0f, WHITE);
+            ClearBackground(BLACK); // Default background color
 
-        // Debug:
-        // DrawFPS(0,0);
-    } EndDrawing();
+            switch(game.currentScreen)
+            {
+                case SCREEN_LOGO:     DrawRaylibLogo();
+                                      break;
+                case SCREEN_TITLE:    DrawUiFrame();
+                                      break;
+                case SCREEN_GAMEPLAY: DrawGameFrame();
+                                      break;
+                default: break;
+            }
+
+            EndMode2D();
+        EndScissorMode();
+    EndDrawing();
 }
-

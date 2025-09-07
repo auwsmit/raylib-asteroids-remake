@@ -45,7 +45,6 @@ typedef struct SpaceShip
     float width;
     float length;
     bool isAtScreenEdge;
-    bool followMouse;
 } SpaceShip;
 
 typedef struct Asteroid
@@ -62,6 +61,7 @@ typedef struct Asteroid
 typedef struct GameState
 {
     Sound beeps[1];
+    Camera2D camera;
     SpaceShip ship;
     Asteroid rocks[ASTEROID_AMOUNT];
     float winTimer;   // countdown after player wins

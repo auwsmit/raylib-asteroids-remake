@@ -13,8 +13,8 @@ void InitRaylibLogo(void)
 {
     Logo startOfAnimation =
     {
-        .positionX = RENDER_WIDTH/2 - RAYLIB_LOGO_WIDTH/2,
-        .positionY = RENDER_HEIGHT/2 - RAYLIB_LOGO_WIDTH/2,
+        .positionX = VIRTUAL_WIDTH/2 - RAYLIB_LOGO_WIDTH/2,
+        .positionY = VIRTUAL_HEIGHT/2 - RAYLIB_LOGO_WIDTH/2,
 
         .elapsedTime = 0,
         .lettersCount = 0,
@@ -155,8 +155,8 @@ void DrawRaylibLogo(void)
 
     if (raylibLogo.state != LOGO_PAUSE)
         DrawText("powered by",
-                 (int)((RENDER_WIDTH / 2) - (RAYLIB_LOGO_WIDTH / 2)),
-                 (int)((RENDER_HEIGHT / 2) - (RAYLIB_LOGO_WIDTH / 2) - offsetB - lineWidth / 4),
+                 (int)((VIRTUAL_WIDTH / 2) - (RAYLIB_LOGO_WIDTH / 2)),
+                 (int)((VIRTUAL_HEIGHT / 2) - (RAYLIB_LOGO_WIDTH / 2) - offsetB - lineWidth / 4),
                  (int)(fontSize / 2), RAYWHITE);
 
     switch (raylibLogo.state)
@@ -186,10 +186,10 @@ void DrawRaylibLogo(void)
             DrawRectangle(rectPosX, rectPosY + offsetA, bottomWidth, lineWidth, RAYWHITE);
 
             DrawText(TextSubtext("raylib", 0, raylibLogo.lettersCount),
-                     RENDER_WIDTH/2 - offsetC, RENDER_HEIGHT/2 + offsetD,
+                     VIRTUAL_WIDTH/2 - offsetC, VIRTUAL_HEIGHT/2 + offsetD,
                      fontSize, RAYWHITE);
 
-            DrawRectangle(0, 0, RENDER_WIDTH, RENDER_HEIGHT, Fade(BLACK, raylibLogo.alpha));
+            DrawRectangle(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT, Fade(BLACK, raylibLogo.alpha));
             break;
         case LOGO_PAUSE:
             break;

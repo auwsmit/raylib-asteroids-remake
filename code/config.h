@@ -10,9 +10,8 @@
 #define WINDOW_TITLE "Asteroids Remake with raylib"
 
 #define ASPECT_RATIO (4.0f / 3.0f)
-#define RENDER_HEIGHT 1080 // The native resolution of the game itself
-                           // This will scale to the game window
-#define RENDER_WIDTH (int)(RENDER_HEIGHT * ASPECT_RATIO)
+#define VIRTUAL_HEIGHT 1080 // The size of the game world
+#define VIRTUAL_WIDTH (int)(VIRTUAL_HEIGHT * ASPECT_RATIO)
 
 #define DEFAULT_HEIGHT 720 // Default size of the game window
 #define DEFAULT_WIDTH (int)(DEFAULT_HEIGHT * ASPECT_RATIO)

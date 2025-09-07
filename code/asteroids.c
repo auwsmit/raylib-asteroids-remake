@@ -6,7 +6,6 @@
 
 #include <limits.h> // for SHRT_MAX for beep sound math
 #include "raymath.h" // needed for vector math
-#include "rlgl.h" // needed to transform ship coords
 
 #include "config.h"
 #include "input.h"
@@ -22,11 +21,12 @@ void InitGameState(void)
     {
         // Game boots to raylib logo animation
         .currentScreen = SCREEN_LOGO,
+        .camera.target = (Vector2){ VIRTUAL_WIDTH / 2, VIRTUAL_HEIGHT / 2 },
 
         .ship = {
             .position = {
-                RENDER_WIDTH / 2,
-                RENDER_HEIGHT / 2,
+                VIRTUAL_WIDTH / 2,
+                VIRTUAL_HEIGHT / 2,
             },
             .width = SHIP_WIDTH,
             .length = SHIP_LENGTH,
@@ -38,8 +38,8 @@ void InitGameState(void)
     // random rocks
     for (int i = 0; i < ASTEROID_AMOUNT; i++)
     {
-        float rockPosX = (float)GetRandomValue(0, RENDER_WIDTH);
-        float rockPosY = (float)GetRandomValue(0, RENDER_HEIGHT);
+        float rockPosX = (float)GetRandomValue(0, VIRTUAL_WIDTH);
+        float rockPosY = (float)GetRandomValue(0, VIRTUAL_HEIGHT);
         defaultState.rocks[i].position = (Vector2){ rockPosX, rockPosY };
         defaultState.rocks[i].angle = (float)GetRandomValue(0, 360);
         defaultState.rocks[i].size = (float)GetRandomValue(10,100);
@@ -112,8 +112,8 @@ bool IsShipOnEdge(SpaceShip *ship)
     {
         shipTriangle[i] = Vector2Rotate(shipTriangle[i], ship->rotation * DEG2RAD);
         shipTriangle[i] = Vector2Add(shipTriangle[i], ship->position);
-        if ((shipTriangle[i].x < 0) || (shipTriangle[i].x > RENDER_WIDTH) ||
-            (shipTriangle[i].y < 0) || (shipTriangle[i].y > RENDER_HEIGHT))
+        if ((shipTriangle[i].x < 0) || (shipTriangle[i].x > VIRTUAL_WIDTH) ||
+            (shipTriangle[i].y < 0) || (shipTriangle[i].y > VIRTUAL_HEIGHT))
                 return true; // At least one point is past the edge
     }
 
@@ -124,9 +124,9 @@ bool IsShipOnEdge(SpaceShip *ship)
 bool IsRockOnEdge(Asteroid *rock)
 {
     if ((rock->position.x - rock->size < 0) ||
-        (rock->position.x + rock->size > RENDER_WIDTH) ||
+        (rock->position.x + rock->size > VIRTUAL_WIDTH) ||
         (rock->position.y - rock->size < 0) ||
-        (rock->position.y + rock->size > RENDER_HEIGHT))
+        (rock->position.y + rock->size > VIRTUAL_HEIGHT))
         return true; // Rock is past the edge
 
     // Rock is not past edge
@@ -178,27 +178,25 @@ void UpdateShip(SpaceShip *ship)
     ship->isAtScreenEdge = IsShipOnEdge(ship);
 
     // Player Input
-    if (Vector2Length(GetMouseDelta()) != 0 || ship->followMouse)
+    if ((Vector2Length(GetMouseDelta()) != 0) ||
+        IsMouseButtonDown(MOUSE_LEFT_BUTTON))
     {
-        ship->followMouse = true;
         Vector2 mouse = GetMousePosition();
-        float scale = MIN((float)GetScreenWidth()/RENDER_WIDTH, (float)GetScreenHeight()/RENDER_HEIGHT);
+        float scale = MIN((float)GetScreenWidth()/VIRTUAL_WIDTH, (float)GetScreenHeight()/VIRTUAL_HEIGHT);
         Vector2 mousePos = { 0 };
-        mousePos.x = (mouse.x - (GetScreenWidth() - (RENDER_WIDTH*scale))*0.5f)/scale;
-        mousePos.y = (mouse.y - (GetScreenHeight() - (RENDER_HEIGHT*scale))*0.5f)/scale;
-        mousePos = Vector2Clamp(mousePos, (Vector2){ 0, 0 }, (Vector2){ (float)RENDER_WIDTH, (float)RENDER_HEIGHT });
+        mousePos.x = (mouse.x - (GetScreenWidth() - (VIRTUAL_WIDTH*scale))*0.5f)/scale;
+        mousePos.y = (mouse.y - (GetScreenHeight() - (VIRTUAL_HEIGHT*scale))*0.5f)/scale;
+        mousePos = Vector2Clamp(mousePos, (Vector2){ 0, 0 }, (Vector2){ (float)VIRTUAL_WIDTH, (float)VIRTUAL_HEIGHT });
         Vector2 mouseDirection = Vector2Subtract(mousePos, ship->position);
         ship->rotation = atan2(mouseDirection.y, mouseDirection.x) * RAD2DEG + 90;
     }
     if (IsInputActionDown(INPUT_ACTION_LEFT))
     {
         ship->rotation -= SHIP_TURN_SPEED * GetFrameTime();
-        ship->followMouse = false;
     }
     if (IsInputActionDown(INPUT_ACTION_RIGHT))
     {
         ship->rotation += SHIP_TURN_SPEED * GetFrameTime();
-        ship->followMouse = false;
     }
 
     if (IsInputActionDown(INPUT_ACTION_FORWARD))
@@ -232,13 +230,13 @@ void UpdateShip(SpaceShip *ship)
 
     // Loop ship past screen edge
     if (ship->position.x < 0)            // past left edge
-        ship->position.x += RENDER_WIDTH;
-    if (ship->position.x > RENDER_WIDTH) // past right edge
-        ship->position.x -= RENDER_WIDTH;
+        ship->position.x += VIRTUAL_WIDTH;
+    if (ship->position.x > VIRTUAL_WIDTH) // past right edge
+        ship->position.x -= VIRTUAL_WIDTH;
     if (ship->position.y < 0)            // past top edge
-        ship->position.y += RENDER_HEIGHT;
-    if (ship->position.y > RENDER_HEIGHT) // past bottom edge
-        ship->position.y -= RENDER_HEIGHT;
+        ship->position.y += VIRTUAL_HEIGHT;
+    if (ship->position.y > VIRTUAL_HEIGHT) // past bottom edge
+        ship->position.y -= VIRTUAL_HEIGHT;
 }
 
 void UpdateRock(Asteroid *rock)
@@ -251,13 +249,13 @@ void UpdateRock(Asteroid *rock)
 
     // Loop ship past screen edge
     if (rock->position.x < 0)             // past left edge
-        rock->position.x += RENDER_WIDTH;
-    if (rock->position.x > RENDER_WIDTH)  // past right edge
-        rock->position.x -= RENDER_WIDTH;
+        rock->position.x += VIRTUAL_WIDTH;
+    if (rock->position.x > VIRTUAL_WIDTH)  // past right edge
+        rock->position.x -= VIRTUAL_WIDTH;
     if (rock->position.y < 0)             // past top edge
-        rock->position.y += RENDER_HEIGHT;
-    if (rock->position.y > RENDER_HEIGHT) // past bottom edge
-        rock->position.y -= RENDER_HEIGHT;
+        rock->position.y += VIRTUAL_HEIGHT;
+    if (rock->position.y > VIRTUAL_HEIGHT) // past bottom edge
+        rock->position.y -= VIRTUAL_HEIGHT;
 }
 
 void DrawGameFrame(void)
@@ -295,14 +293,14 @@ void DrawSpaceShip(SpaceShip *ship)
     if (ship->isAtScreenEdge)
     {
         Vector2 offsets[8] = {
-            { RENDER_WIDTH, 0 },   // right
-            { -RENDER_WIDTH, 0 },  // left
-            { 0, -RENDER_HEIGHT }, // up
-            { 0, RENDER_HEIGHT },  // down
-            { RENDER_WIDTH, -RENDER_HEIGHT },  // top-right
-            { -RENDER_WIDTH, -RENDER_HEIGHT }, // top-left
-            { RENDER_WIDTH, RENDER_HEIGHT },   // bottom-right
-            { -RENDER_WIDTH, RENDER_HEIGHT }   // bottom-left
+            { VIRTUAL_WIDTH, 0 },   // right
+            { -VIRTUAL_WIDTH, 0 },  // left
+            { 0, -VIRTUAL_HEIGHT }, // up
+            { 0, VIRTUAL_HEIGHT },  // down
+            { VIRTUAL_WIDTH, -VIRTUAL_HEIGHT },  // top-right
+            { -VIRTUAL_WIDTH, -VIRTUAL_HEIGHT }, // top-left
+            { VIRTUAL_WIDTH, VIRTUAL_HEIGHT },   // bottom-right
+            { -VIRTUAL_WIDTH, VIRTUAL_HEIGHT }   // bottom-left
         };
 
         for (int i = 0; i < 8; i++)
@@ -321,14 +319,14 @@ void DrawAsteroid(Asteroid *rock)
 {
     DrawCircle(rock->position.x, rock->position.y, rock->size, RAYWHITE);
     Vector2 offsets[8] = {
-        { RENDER_WIDTH, 0 },   // right
-        { -RENDER_WIDTH, 0 },  // left
-        { 0, -RENDER_HEIGHT }, // up
-        { 0, RENDER_HEIGHT },  // down
-        { RENDER_WIDTH, -RENDER_HEIGHT },  // top-right
-        { -RENDER_WIDTH, -RENDER_HEIGHT }, // top-left
-        { RENDER_WIDTH, RENDER_HEIGHT },   // bottom-right
-        { -RENDER_WIDTH, RENDER_HEIGHT }   // bottom-left
+        { VIRTUAL_WIDTH, 0 },   // right
+        { -VIRTUAL_WIDTH, 0 },  // left
+        { 0, -VIRTUAL_HEIGHT }, // up
+        { 0, VIRTUAL_HEIGHT },  // down
+        { VIRTUAL_WIDTH, -VIRTUAL_HEIGHT },  // top-right
+        { -VIRTUAL_WIDTH, -VIRTUAL_HEIGHT }, // top-left
+        { VIRTUAL_WIDTH, VIRTUAL_HEIGHT },   // bottom-right
+        { -VIRTUAL_WIDTH, VIRTUAL_HEIGHT }   // bottom-left
     };
 
     if (rock->isAtScreenEdge)
@@ -344,7 +342,7 @@ void DrawAsteroid(Asteroid *rock)
 
 void ResetShip(SpaceShip *ship)
 {
-    ship->position.x = RENDER_WIDTH / 2;
-    ship->position.y = RENDER_HEIGHT / 2;
+    ship->position.x = VIRTUAL_WIDTH / 2;
+    ship->position.y = VIRTUAL_HEIGHT / 2;
     ship->rotation = (float)GetRandomValue(0, 360);
 }
