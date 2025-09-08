@@ -17,8 +17,7 @@
 
 // Types and Structures
 // ----------------------------------------------------------------------------
-typedef enum InputAction
-{
+typedef enum InputAction {
     INPUT_ACTION_FULLSCREEN,
     INPUT_ACTION_CONFIRM,
     INPUT_ACTION_BACK,
@@ -31,8 +30,7 @@ typedef enum InputAction
     INPUT_ACTION_RIGHT,
 } InputAction;
 
-typedef struct InputMappings
-{
+typedef struct InputMappings {
     KeyboardKey keyMaps[INPUT_ACTIONS_COUNT][INPUT_MAX_MAPS];
     MouseButton mouseMaps[INPUT_ACTIONS_COUNT][INPUT_MAX_MAPS];
 } InputMappings;
@@ -43,6 +41,7 @@ void InitDefaultInputControls(void); // Sets the default key mapping control sch
 bool IsInputKeyModifier(KeyboardKey key);
 bool IsInputActionPressed(InputAction action);
 bool IsInputActionDown(InputAction action);
+Vector2 GetScaledMousePosition(void);
 void HandleToggleFullscreen(void);
 
 #endif // ASTEROIDS_INPUT_HEADER_GUARD

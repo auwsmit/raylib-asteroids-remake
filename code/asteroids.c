@@ -11,22 +11,23 @@
 #include "input.h"
 #include "ui.h"
 
-#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
+#define ARRAY_SIZE(arr) (sizeof(arr)/sizeof((arr)[0]))
 
 void InitGameState(void)
 {
     float shipAngle = (float)GetRandomValue(0, 360);
 
-    GameState defaultState =
-    {
+    GameState defaultState = {
         // Game boots to raylib logo animation
         .currentScreen = SCREEN_LOGO,
-        .camera.target = (Vector2){ VIRTUAL_WIDTH / 2, VIRTUAL_HEIGHT / 2 },
+
+        // Center camera
+        .camera.target = (Vector2){ VIRTUAL_WIDTH/2, VIRTUAL_HEIGHT/2 },
 
         .ship = {
             .position = {
-                VIRTUAL_WIDTH / 2,
-                VIRTUAL_HEIGHT / 2,
+                VIRTUAL_WIDTH/2,
+                VIRTUAL_HEIGHT/2,
             },
             .width = SHIP_WIDTH,
             .length = SHIP_LENGTH,
@@ -35,15 +36,23 @@ void InitGameState(void)
 
     };
 
-    // random rocks
+    // Random rocks
     for (int i = 0; i < ASTEROID_AMOUNT; i++)
     {
+        Asteroid *rock = &defaultState.rocks[i];
         float rockPosX = (float)GetRandomValue(0, VIRTUAL_WIDTH);
         float rockPosY = (float)GetRandomValue(0, VIRTUAL_HEIGHT);
-        defaultState.rocks[i].position = (Vector2){ rockPosX, rockPosY };
-        defaultState.rocks[i].angle = (float)GetRandomValue(0, 360);
-        defaultState.rocks[i].size = (float)GetRandomValue(10,100);
-        defaultState.rocks[i].speed = ASTEROID_SPEED;
+
+        rock->position = (Vector2){ rockPosX, rockPosY };
+        rock->angle = (float)GetRandomValue(0, 360);
+        rock->radius = (float)GetRandomValue(ASTEROID_MIN_RADIUS,ASTEROID_MAX_RADIUS);
+
+        // Speed proportional to size
+        float scaledSpeed = ASTEROID_SPEED*(ASTEROID_MAX_RADIUS - rock->radius)/(ASTEROID_MAX_RADIUS - ASTEROID_MIN_RADIUS);
+        if (scaledSpeed < ASTEROID_SPEED/10) // minimum speed
+            scaledSpeed = ASTEROID_SPEED/10;
+
+        rock->speed = scaledSpeed;
     }
 
     // Allocate memory for beep sine waves
@@ -55,28 +64,31 @@ void InitGameState(void)
 Sound GenBeep(float freq, float lengthSec)
 {
     int sampleRate = 44100;
-    int samples = (int)(lengthSec * sampleRate);
-    short *data = MemAlloc(samples * sizeof(short));
+    int samples = (int)(lengthSec*sampleRate);
+    short *data = MemAlloc(samples*sizeof(short));
 
     // fade length in samples
     // (This prevents an unpleasant "pop" noise when the sound starts or stops)
-    int fadeSamples = (int)(0.005f * sampleRate); // 5 ms
+    int fadeSamples = (int)(0.005f*sampleRate); // 5 ms
 
     // Generate wave data
     for (int i = 0; i < samples; i++)
     {
-        float timeInSeconds = (float)i / sampleRate;
-        float sample = sinf(2.0f * PI * freq * timeInSeconds);
+        float timeInSeconds = (float)i/sampleRate;
+        float sample = sinf(2.0f*PI*freq*timeInSeconds);
 
         // Apply fade in/out
         float amplitude = 1.0f;
-        if (i < fadeSamples) {
-            amplitude = (float)i / fadeSamples; // fade in
-        } else if (i > samples - fadeSamples) {
-            amplitude = (float)(samples - i) / fadeSamples; // fade out
+        if (i < fadeSamples)
+        {
+            amplitude = (float)i/fadeSamples; // fade in
+        }
+        else if (i > samples - fadeSamples)
+        {
+            amplitude = (float)(samples - i)/fadeSamples; // fade out
         }
 
-        data[i] = (short)(sample * amplitude * SHRT_MAX * 0.25f);
+        data[i] = (short)(sample*amplitude*SHRT_MAX*0.25f);
     }
 
     Wave beepSoundWave = {
@@ -100,17 +112,16 @@ void FreeBeeps(void)
 
 bool IsShipOnEdge(SpaceShip *ship)
 {
-    Vector2 shipTriangle[3] =
-    {
-        (Vector2){ 0, -ship->length / 2 },
-        (Vector2){ -ship->width / 2, ship->width / 2 },
-        (Vector2){  ship->width / 2, ship->width / 2 },
+    Vector2 shipTriangle[3] = {
+        (Vector2){ 0, -ship->length/2 },
+        (Vector2){ -ship->width/2, ship->width/2 },
+        (Vector2){  ship->width/2, ship->width/2 },
     };
 
     // Check each point
     for (unsigned int i = 0; i < 3; i++)
     {
-        shipTriangle[i] = Vector2Rotate(shipTriangle[i], ship->rotation * DEG2RAD);
+        shipTriangle[i] = Vector2Rotate(shipTriangle[i], ship->rotation*DEG2RAD);
         shipTriangle[i] = Vector2Add(shipTriangle[i], ship->position);
         if ((shipTriangle[i].x < 0) || (shipTriangle[i].x > VIRTUAL_WIDTH) ||
             (shipTriangle[i].y < 0) || (shipTriangle[i].y > VIRTUAL_HEIGHT))
@@ -123,13 +134,24 @@ bool IsShipOnEdge(SpaceShip *ship)
 
 bool IsRockOnEdge(Asteroid *rock)
 {
-    if ((rock->position.x - rock->size < 0) ||
-        (rock->position.x + rock->size > VIRTUAL_WIDTH) ||
-        (rock->position.y - rock->size < 0) ||
-        (rock->position.y + rock->size > VIRTUAL_HEIGHT))
+    if ((rock->position.x - rock->radius < 0) ||
+        (rock->position.x + rock->radius > VIRTUAL_WIDTH) ||
+        (rock->position.y - rock->radius < 0) ||
+        (rock->position.y + rock->radius > VIRTUAL_HEIGHT))
         return true; // Rock is past the edge
 
     // Rock is not past edge
+    return false;
+}
+
+bool IsWithinScreen(Vector2 position, float radius)
+{
+    if ((position.x - radius < 0) ||
+        (position.x + radius > VIRTUAL_WIDTH) ||
+        (position.y - radius < 0) ||
+        (position.y + radius > VIRTUAL_HEIGHT))
+        return true; // Rock is past the edge
+
     return false;
 }
 
@@ -181,52 +203,38 @@ void UpdateShip(SpaceShip *ship)
     if ((Vector2Length(GetMouseDelta()) != 0) ||
         IsMouseButtonDown(MOUSE_LEFT_BUTTON))
     {
-        Vector2 mouse = GetMousePosition();
-        float scale = MIN((float)GetScreenWidth()/VIRTUAL_WIDTH, (float)GetScreenHeight()/VIRTUAL_HEIGHT);
-        Vector2 mousePos = { 0 };
-        mousePos.x = (mouse.x - (GetScreenWidth() - (VIRTUAL_WIDTH*scale))*0.5f)/scale;
-        mousePos.y = (mouse.y - (GetScreenHeight() - (VIRTUAL_HEIGHT*scale))*0.5f)/scale;
-        mousePos = Vector2Clamp(mousePos, (Vector2){ 0, 0 }, (Vector2){ (float)VIRTUAL_WIDTH, (float)VIRTUAL_HEIGHT });
+        Vector2 mousePos = GetScaledMousePosition();
         Vector2 mouseDirection = Vector2Subtract(mousePos, ship->position);
-        ship->rotation = atan2(mouseDirection.y, mouseDirection.x) * RAD2DEG + 90;
+        float distanceToMouse = Vector2Length(mouseDirection);
+        if ((IsInputActionDown(INPUT_ACTION_FORWARD) && distanceToMouse > ship->length) ||
+            !IsInputActionDown(INPUT_ACTION_FORWARD))
+            ship->rotation = atan2(mouseDirection.y, mouseDirection.x)*RAD2DEG + 90;
     }
     if (IsInputActionDown(INPUT_ACTION_LEFT))
     {
-        ship->rotation -= SHIP_TURN_SPEED * GetFrameTime();
+        ship->rotation -= SHIP_TURN_SPEED*GetFrameTime();
     }
     if (IsInputActionDown(INPUT_ACTION_RIGHT))
     {
-        ship->rotation += SHIP_TURN_SPEED * GetFrameTime();
+        ship->rotation += SHIP_TURN_SPEED*GetFrameTime();
     }
 
     if (IsInputActionDown(INPUT_ACTION_FORWARD))
     {
-        Vector2 newVelocity = (Vector2){ 0, SHIP_THRUST_SPEED * GetFrameTime() };
-        newVelocity = Vector2Rotate(newVelocity, ship->rotation * DEG2RAD);
-        ship->velocity = Vector2Add(ship->velocity, newVelocity);
+        Vector2 thrust = (Vector2){ 0, -SHIP_THRUST_SPEED };
+        thrust = Vector2Rotate(thrust, ship->rotation*DEG2RAD);
+        thrust = Vector2Scale(thrust, GetFrameTime());
+        ship->velocity = Vector2Add(ship->velocity, thrust);
         ship->velocity = Vector2ClampValue(ship->velocity, 0, SHIP_MAX_SPEED);
     }
 
-    // Update ship's position for velocity
-    ship->position = Vector2Subtract(ship->position, ship->velocity);
+    // Apply friction (smooth exponential decay)
+    float slowdown = expf(-SPACE_FRICTION/10*GetFrameTime());
+    ship->velocity = Vector2Scale(ship->velocity, slowdown);
 
-    // Slow down ship
-    if (Vector2Length(ship->velocity) > 0)
-    {
-        float slowdownAmount = SPACE_FRICTION / 10 * GetFrameTime();
-
-        if (Vector2Length(ship->velocity) > slowdownAmount)
-        {
-            Vector2 slowdownVector = Vector2Scale(Vector2Normalize(ship->velocity), -slowdownAmount);
-            ship->velocity = Vector2Add(ship->velocity, slowdownVector);
-        }
-        else
-            ship->velocity = (Vector2){ 0, 0 };
-    }
-    else
-    {
-        ship->velocity = (Vector2){ 0, 0 };
-    }
+    // Update position
+    Vector2 scaledVelocity = Vector2Scale(ship->velocity, GetFrameTime());
+    ship->position = Vector2Add(ship->position, scaledVelocity);
 
     // Loop ship past screen edge
     if (ship->position.x < 0)            // past left edge
@@ -243,7 +251,7 @@ void UpdateRock(Asteroid *rock)
 {
     rock->isAtScreenEdge = IsRockOnEdge(rock);
 
-    Vector2 currentVelocity = (Vector2){ 0, ASTEROID_SPEED * GetFrameTime() };
+    Vector2 currentVelocity = (Vector2){ 0, rock->speed*GetFrameTime() };
     currentVelocity = Vector2Rotate(currentVelocity, rock->angle);
     rock->position = Vector2Add(rock->position, currentVelocity);
 
@@ -275,21 +283,21 @@ void DrawGameFrame(void)
 
 void DrawSpaceShip(SpaceShip *ship)
 {
-    Vector2 shipTriangle[3] =
-    {
-        (Vector2){ 0, -ship->length / 2 },
-        (Vector2){ -ship->width / 2, ship->width / 2 },
-        (Vector2){  ship->width / 2, ship->width / 2 },
+    Vector2 shipTriangle[3] = {
+        (Vector2){ 0, -ship->length/2 },
+        (Vector2){ -ship->width/2, ship->width/2 },
+        (Vector2){  ship->width/2, ship->width/2 },
     };
 
     // Transform ship triangle
     for (unsigned int i = 0; i < 3; i++)
     {
-        shipTriangle[i] = Vector2Rotate(shipTriangle[i], ship->rotation * DEG2RAD);
+        shipTriangle[i] = Vector2Rotate(shipTriangle[i], ship->rotation*DEG2RAD);
         shipTriangle[i] = Vector2Add(shipTriangle[i], ship->position);
     }
     DrawTriangle(shipTriangle[0], shipTriangle[1], shipTriangle[2], RAYWHITE);
 
+    // clones at opposite side of screen
     if (ship->isAtScreenEdge)
     {
         Vector2 offsets[8] = {
@@ -317,7 +325,7 @@ void DrawSpaceShip(SpaceShip *ship)
 
 void DrawAsteroid(Asteroid *rock)
 {
-    DrawCircle(rock->position.x, rock->position.y, rock->size, RAYWHITE);
+    DrawCircle(rock->position.x, rock->position.y, rock->radius, RAYWHITE);
     Vector2 offsets[8] = {
         { VIRTUAL_WIDTH, 0 },   // right
         { -VIRTUAL_WIDTH, 0 },  // left
@@ -329,20 +337,20 @@ void DrawAsteroid(Asteroid *rock)
         { -VIRTUAL_WIDTH, VIRTUAL_HEIGHT }   // bottom-left
     };
 
+    // clones at opposite side of screen
     if (rock->isAtScreenEdge)
     {
         for (int i = 0; i < 8; i++)
         {
-            DrawCircle(rock->position.x + offsets[i].x,
-                       rock->position.y + offsets[i].y,
-                       rock->size, RAYWHITE);
+            Vector2 cloneRock = Vector2Add(rock->position, offsets[i]);
+            DrawCircle(cloneRock.x, cloneRock.y, rock->radius, RAYWHITE);
         }
     }
 }
 
 void ResetShip(SpaceShip *ship)
 {
-    ship->position.x = VIRTUAL_WIDTH / 2;
-    ship->position.y = VIRTUAL_HEIGHT / 2;
+    ship->position.x = VIRTUAL_WIDTH/2;
+    ship->position.y = VIRTUAL_HEIGHT/2;
     ship->rotation = (float)GetRandomValue(0, 360);
 }

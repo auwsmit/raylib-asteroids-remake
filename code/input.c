@@ -2,17 +2,17 @@
 // Helps handle game input
 
 #include "input.h"
+#include "raymath.h"
+#include "config.h"
 
 // Global struct to track input key mappings
 InputMappings gameInput = { 0 };
 
 void InitDefaultInputControls(void)
 {
-    InputMappings defaultControls =
-    {
+    InputMappings defaultControls = {
         // Global across program
-        .keyMaps[INPUT_ACTION_FULLSCREEN] =
-        {
+        .keyMaps[INPUT_ACTION_FULLSCREEN] = {
             KEY_LEFT_ALT, KEY_ENTER,
             KEY_RIGHT_ALT, KEY_ENTER,
             KEY_LEFT_SHIFT, KEY_F,
@@ -131,6 +131,20 @@ bool IsInputActionDown(InputAction action)
     }
 
     return false;
+}
+
+#define MIN(a, b) ((a)<(b)? (a) : (b))
+Vector2 GetScaledMousePosition(void)
+{
+    Vector2 mouse = GetMousePosition();
+    float scale = MIN((float)GetScreenWidth()/VIRTUAL_WIDTH, (float)GetScreenHeight()/VIRTUAL_HEIGHT);
+    Vector2 mousePos = { 0 };
+
+    mousePos.x = (mouse.x - (GetScreenWidth() - (VIRTUAL_WIDTH*scale))*0.5f)/scale;
+    mousePos.y = (mouse.y - (GetScreenHeight() - (VIRTUAL_HEIGHT*scale))*0.5f)/scale;
+    mousePos = Vector2Clamp(mousePos, (Vector2){ 0, 0 }, (Vector2){ (float)VIRTUAL_WIDTH, (float)VIRTUAL_HEIGHT });
+
+    return mousePos;
 }
 
 void HandleToggleFullscreen(void)

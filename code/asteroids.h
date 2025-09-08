@@ -9,36 +9,34 @@
 // Macros
 // ----------------------------------------------------------------------------
 
-#define SHIP_WIDTH 100.0f
-#define SHIP_LENGTH 150.0f
-#define SHIP_TURN_SPEED 180.0f // turn X degrees per second
-#define SHIP_THRUST_SPEED 5.0f
-#define SHIP_MAX_SPEED 10.0f
+#define SHIP_WIDTH 50.0f
+#define SHIP_LENGTH 75.0f
+#define SHIP_TURN_SPEED 190.0f // turn X degrees per second
+#define SHIP_THRUST_SPEED 400.0f
+#define SHIP_MAX_SPEED 1000.0f
 #define SPACE_FRICTION 5.0f
 
-#define ASTEROID_AMOUNT 8
+#define ASTEROID_AMOUNT 10
+#define ASTEROID_MIN_RADIUS 10
+#define ASTEROID_MAX_RADIUS 80
 #define ASTEROID_SPEED 300.0f
 
 // Types and Structures
 // ----------------------------------------------------------------------------
 
-typedef enum ScreenState
-{
+typedef enum ScreenState {
     SCREEN_LOGO, SCREEN_TITLE, SCREEN_GAMEPLAY, SCREEN_ENDING
 } ScreenState;
 
-typedef enum GameMode
-{
+typedef enum GameMode {
     MODE_1PLAYER, MODE_2PLAYER, MODE_DEMO
 } GameMode;
 
-typedef enum GameBeep
-{
+typedef enum GameBeep {
     BEEP_MENU,
 } GameBeep;
 
-typedef struct SpaceShip
-{
+typedef struct SpaceShip {
     Vector2 position;
     Vector2 velocity;
     float rotation; // in degrees, 0 is pointing up, 90 is right
@@ -47,19 +45,17 @@ typedef struct SpaceShip
     bool isAtScreenEdge;
 } SpaceShip;
 
-typedef struct Asteroid
-{
+typedef struct Asteroid {
     Vector2 position;
     Vector2 velocity;
     float angle;
     float speed;
-    float size;
+    float radius;
     unsigned int life;
     bool isAtScreenEdge;
 } Asteroid;
 
-typedef struct GameState
-{
+typedef struct GameState {
     Sound beeps[1];
     Camera2D camera;
     SpaceShip ship;
@@ -87,6 +83,7 @@ void FreeBeeps(void);
 // Collision
 bool IsShipOnEdge(SpaceShip *ship);
 bool IsRockOnEdge(Asteroid *rock);
+bool IsWithinScreen(Vector2 position, float radius);
 
 // Update / User Input
 void UpdateGameFrame(void); // Updates all the game's data and objects for the current frame

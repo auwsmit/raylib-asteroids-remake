@@ -11,12 +11,11 @@
 #include "input.h"
 #include "asteroids.h"
 
-#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
+#define ARRAY_SIZE(arr) (sizeof(arr)/sizeof((arr)[0]))
 
 void InitUiState(void)
 {
-    UiState uiDefaults =
-    {
+    UiState uiDefaults = {
         .currentMenu = UI_MENU_TITLE,
         .selectedId = UI_BID_START,
         .firstFrame = true,
@@ -43,11 +42,11 @@ void InitUiState(void)
     const int pauseTextLength = MeasureText(pauseText, UI_PAUSE_SIZE);
     uiDefaults.pause =
         InitUiButton(pauseText, UI_PAUSE_SIZE,
-                     (float)VIRTUAL_WIDTH / 4 - pauseTextLength / 2,
-                     (float)VIRTUAL_HEIGHT - (UI_PAUSE_SIZE * 2));
+                     (float)VIRTUAL_WIDTH/4 - pauseTextLength/2,
+                     (float)VIRTUAL_HEIGHT - (UI_PAUSE_SIZE*2));
 
     InitUiMenuButtonRelative(resumeText, UI_PAUSE_SIZE, &uiDefaults.pause, -UI_PAUSE_SIZE, pauseMenu);
-    InitUiMenuButtonRelative(toTitleText, UI_PAUSE_SIZE, &uiDefaults.pause, -UI_PAUSE_SIZE * 2 - UI_BUTTON_SPACING, pauseMenu);
+    InitUiMenuButtonRelative(toTitleText, UI_PAUSE_SIZE, &uiDefaults.pause, -UI_PAUSE_SIZE*2 - UI_BUTTON_SPACING, pauseMenu);
 
     ui = uiDefaults;
 }
@@ -56,7 +55,7 @@ UiButton InitUiTitle(char *text, UiButton *button)
 {
     int fontSize = UI_TITLE_SIZE;
     int textWidth = MeasureText(text, fontSize);
-    float titlePosX = (VIRTUAL_WIDTH - (float)textWidth) / 2;
+    float titlePosX = (VIRTUAL_WIDTH - (float)textWidth)/2;
 #if !defined(PLATFORM_WEB) // different spacing for web
         float titlePosY = UI_TITLE_SPACE_FROM_TOP;
 #else
@@ -80,7 +79,7 @@ UiButton *InitUiMenuButton(char *text, int fontSize, float textPosX, float textP
 {
     UiButton button = { text, fontSize, false, { textPosX, textPosY }, RAYWHITE };
     menu->buttonCount++;
-    menu->buttons = MemRealloc(menu->buttons, menu->buttonCount * sizeof(UiButton));
+    menu->buttons = MemRealloc(menu->buttons, menu->buttonCount*sizeof(UiButton));
     menu->buttons[menu->buttonCount - 1] = button;
 
     return &menu->buttons[menu->buttonCount - 1];
@@ -89,8 +88,8 @@ UiButton *InitUiMenuButton(char *text, int fontSize, float textPosX, float textP
 UiButton *InitUiMenuButtonRelative(char* text, int fontSize, UiButton *originButton, float offsetY, UiMenu *menu)
 {
     float originWidth = MeasureText(originButton->text, originButton->fontSize);
-    float originPosX = (originButton->position.x + originWidth / 2);
-    float textPosX = originPosX - MeasureText(text, fontSize) / 2;
+    float originPosX = (originButton->position.x + originWidth/2);
+    float textPosX = originPosX - MeasureText(text, fontSize)/2;
     float textPosY = originButton->position.y + originButton->fontSize;
 
     return InitUiMenuButton(text, fontSize, textPosX, textPosY + offsetY, menu);
@@ -125,7 +124,7 @@ void UpdateUiFrame(void)
     // Update pause fade animation
     static float fadeLength = 1.5f; // Fade in and out at this rate in seconds
     static bool fadingOut = false;
-    float fadeIncrement = (1.0f / fadeLength) * GetFrameTime();
+    float fadeIncrement = (1.0f/fadeLength)*GetFrameTime();
 
     if (ui.textFade >= 1.0f)
         fadingOut = true;
@@ -149,12 +148,7 @@ void UpdateUiMenuTraverse(void)
     bool mouseMoved = (Vector2Length(GetMouseDelta()) > 0);
     if (mouseMoved || (ui.firstFrame && ui.lastSelectWithMouse))
     {
-        Vector2 mouse = GetMousePosition();
-        float scale = MIN((float)GetScreenWidth()/VIRTUAL_WIDTH, (float)GetScreenHeight()/VIRTUAL_HEIGHT);
-        Vector2 mousePos = { 0 };
-        mousePos.x = (mouse.x - (GetScreenWidth() - (VIRTUAL_WIDTH*scale))*0.5f)/scale;
-        mousePos.y = (mouse.y - (GetScreenHeight() - (VIRTUAL_HEIGHT*scale))*0.5f)/scale;
-        mousePos = Vector2Clamp(mousePos, (Vector2){ 0, 0 }, (Vector2){ (float)VIRTUAL_WIDTH, (float)VIRTUAL_HEIGHT });
+        Vector2 mousePos = GetScaledMousePosition();
 
         for (unsigned int i = 0; i < menu->buttonCount; i++)
         {
@@ -225,12 +219,7 @@ void UpdateUiButtonMouseHover(UiButton *button)
     bool mouseMoved = (Vector2Length(GetMouseDelta()) > 0);
     if (!mouseMoved) return;
 
-    Vector2 mouse = GetMousePosition();
-    float scale = MIN((float)GetScreenWidth()/VIRTUAL_WIDTH, (float)GetScreenHeight()/VIRTUAL_HEIGHT);
-    Vector2 mousePos = { 0 };
-    mousePos.x = (mouse.x - (GetScreenWidth() - (VIRTUAL_WIDTH*scale))*0.5f)/scale;
-    mousePos.y = (mouse.y - (GetScreenHeight() - (VIRTUAL_HEIGHT*scale))*0.5f)/scale;
-    mousePos = Vector2Clamp(mousePos, (Vector2){ 0, 0 }, (Vector2){ (float)VIRTUAL_WIDTH, (float)VIRTUAL_HEIGHT });
+    Vector2 mousePos = GetScaledMousePosition();
 
     if (IsMouseWithinUiButton(mousePos, button))
     {
@@ -247,12 +236,7 @@ void UpdateUiButtonMouseHover(UiButton *button)
 void UpdateUiButtonSelect(UiButton *button)
 {
 
-    Vector2 mouse = GetMousePosition();
-    float scale = MIN((float)GetScreenWidth()/VIRTUAL_WIDTH, (float)GetScreenHeight()/VIRTUAL_HEIGHT);
-    Vector2 mousePos = { 0 };
-    mousePos.x = (mouse.x - (GetScreenWidth() - (VIRTUAL_WIDTH*scale))*0.5f)/scale;
-    mousePos.y = (mouse.y - (GetScreenHeight() - (VIRTUAL_HEIGHT*scale))*0.5f)/scale;
-    mousePos = Vector2Clamp(mousePos, (Vector2){ 0, 0 }, (Vector2){ (float)VIRTUAL_WIDTH, (float)VIRTUAL_HEIGHT });
+    Vector2 mousePos = GetScaledMousePosition();
 
     // Select pause button
     if (ui.currentMenu == UI_MENU_GAMEPLAY && IsGestureDetected(GESTURE_TAP) &&
@@ -376,17 +360,17 @@ void DrawUiFrame(void)
         if (game.isPaused)
         {
             text = "PAUSED";
-            int textOffset = MeasureText(text, SCORE_FONT_SIZE) / 2;
-            DrawText(text, VIRTUAL_WIDTH / 2 - textOffset,
-                     VIRTUAL_HEIGHT / 2 - SCORE_FONT_SIZE / 2,
+            int textOffset = MeasureText(text, SCORE_FONT_SIZE)/2;
+            DrawText(text, VIRTUAL_WIDTH/2 - textOffset,
+                     VIRTUAL_HEIGHT/2 - SCORE_FONT_SIZE/2,
                      SCORE_FONT_SIZE, fadeColor);
         }
         else if (game.currentMode == MODE_DEMO) // Draw demo mode message
         {
             text = "DEMO MODE";
-            int textOffset = MeasureText(text, SCORE_FONT_SIZE) / 2;
-            DrawText(text, VIRTUAL_WIDTH / 2 - textOffset,
-                     VIRTUAL_HEIGHT / 2 - SCORE_FONT_SIZE / 2,
+            int textOffset = MeasureText(text, SCORE_FONT_SIZE)/2;
+            DrawText(text, VIRTUAL_WIDTH/2 - textOffset,
+                     VIRTUAL_HEIGHT/2 - SCORE_FONT_SIZE/2,
                      SCORE_FONT_SIZE, fadeColor);
         }
 
@@ -407,7 +391,7 @@ void DrawUiCursor(UiButton *selectedButton)
     float size = UI_CURSOR_SIZE;
 
     Vector2 selectPointPos; // the corner/vertice pointing towards the right
-    Vector2 cursorOffset = (Vector2){-50.0f, (float)selectedButton->fontSize / 2};
+    Vector2 cursorOffset = (Vector2){-50.0f, (float)selectedButton->fontSize/2};
     selectPointPos = Vector2Add(selectedButton->position, cursorOffset);
 
     DrawTriangle(Vector2Add(selectPointPos, (Vector2){ -size*2, size }),
@@ -422,11 +406,11 @@ void DrawUiScores(void)
 
     const char *scoreLMsg = TextFormat("%i", game.scoreL);
     int scoreLWidth = MeasureText(scoreLMsg, fontSize);
-    int scoreLPosX = VIRTUAL_WIDTH / 4 - scoreLWidth / 2;
+    int scoreLPosX = VIRTUAL_WIDTH/4 - scoreLWidth/2;
 
     const char *scoreRMsg = TextFormat("%i", game.scoreR);
     int scoreRWidth = MeasureText(scoreRMsg, fontSize);
-    int scoreRPosX = VIRTUAL_WIDTH / 4 * 3 - scoreRWidth / 2;
+    int scoreRPosX = VIRTUAL_WIDTH/4*3 - scoreRWidth/2;
 
     int scorePosY = 50;
     DrawText(scoreLMsg, scoreLPosX, scorePosY, fontSize, RAYWHITE);

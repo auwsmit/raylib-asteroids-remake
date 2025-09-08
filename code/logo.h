@@ -10,12 +10,15 @@
 // ----------------------------------------------------------------------------
 #define RAYLIB_LOGO_WIDTH 512 // takes multiples of 64
                               // 192 is the minimum size
-#define RAYLIB_LOGO_OUTLINE (RAYLIB_LOGO_WIDTH / 16)
+#define RAYLIB_LOGO_OUTLINE (RAYLIB_LOGO_WIDTH/16)
 #define RAYLIB_LOGO_FONT_SIZE (RAYLIB_LOGO_WIDTH/8 + RAYLIB_LOGO_OUTLINE)
 
 // Types and Structures
 // ----------------------------------------------------------------------------
-typedef enum LogoState { LOGO_START, LOGO_GROW1, LOGO_GROW2, LOGO_TEXT, LOGO_PAUSE, LOGO_END } LogoState;
+typedef enum LogoState {
+    LOGO_START, LOGO_GROW1, LOGO_GROW2,
+    LOGO_TEXT, LOGO_PAUSE, LOGO_END
+} LogoState;
 
 typedef struct Logo {
     float positionX;

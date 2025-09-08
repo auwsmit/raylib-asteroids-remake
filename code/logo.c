@@ -11,8 +11,7 @@ Logo raylibLogo = { 0 };
 
 void InitRaylibLogo(void)
 {
-    Logo startOfAnimation =
-    {
+    Logo startOfAnimation = {
         .positionX = VIRTUAL_WIDTH/2 - RAYLIB_LOGO_WIDTH/2,
         .positionY = VIRTUAL_HEIGHT/2 - RAYLIB_LOGO_WIDTH/2,
 
@@ -35,7 +34,7 @@ void InitRaylibLogo(void)
 void UpdateRaylibLogo(void)
 {
     float deltaTime = GetFrameTime();
-    const float growSpeed = RAYLIB_LOGO_WIDTH * 0.9375f; // Speed that lines grow
+    const float growSpeed = RAYLIB_LOGO_WIDTH*0.9375f; // Speed that lines grow
     const float letterDelay = 0.2f; // Time between each letter appearing
     const float fadeSpeed = 1.0f; // Fade out in 1 second
     static bool skipped = false;
@@ -78,8 +77,8 @@ void UpdateRaylibLogo(void)
             break;
 
         case LOGO_GROW1: // Top and left bars growing
-            raylibLogo.topSideRecWidth += growSpeed * deltaTime;
-            raylibLogo.leftSideRecHeight += growSpeed * deltaTime;
+            raylibLogo.topSideRecWidth += growSpeed*deltaTime;
+            raylibLogo.leftSideRecHeight += growSpeed*deltaTime;
 
             if (raylibLogo.topSideRecWidth >= RAYLIB_LOGO_WIDTH)
             {
@@ -91,8 +90,8 @@ void UpdateRaylibLogo(void)
             break;
 
         case LOGO_GROW2: // Bottom and right bars growing
-            raylibLogo.bottomSideRecWidth += growSpeed * deltaTime;
-            raylibLogo.rightSideRecHeight += growSpeed * deltaTime;
+            raylibLogo.bottomSideRecWidth += growSpeed*deltaTime;
+            raylibLogo.rightSideRecHeight += growSpeed*deltaTime;
 
             if (raylibLogo.bottomSideRecWidth >= RAYLIB_LOGO_WIDTH)
             {
@@ -115,7 +114,7 @@ void UpdateRaylibLogo(void)
             // When all letters have appeared, just fade out everything
             if (raylibLogo.lettersCount >= 10)
             {
-                raylibLogo.alpha += fadeSpeed * deltaTime;
+                raylibLogo.alpha += fadeSpeed*deltaTime;
                 if (raylibLogo.alpha >= 1.0f)
                 {
                     raylibLogo.alpha = 1.0f;
@@ -141,7 +140,7 @@ void DrawRaylibLogo(void)
 {
     int lineWidth = (int)(RAYLIB_LOGO_OUTLINE); // DrawRectangle() takes ints, so all this casting is just to remove warnings
     int offsetA   = (int)(RAYLIB_LOGO_WIDTH*0.9375f);
-    int offsetB   = (int)(lineWidth * 2);
+    int offsetB   = (int)(lineWidth*2);
     int offsetC   = (int)(RAYLIB_LOGO_WIDTH*0.171875f);
     int offsetD   = (int)(RAYLIB_LOGO_WIDTH*0.1875f);
     int fontSize  = (int)(RAYLIB_LOGO_FONT_SIZE);
@@ -155,14 +154,14 @@ void DrawRaylibLogo(void)
 
     if (raylibLogo.state != LOGO_PAUSE)
         DrawText("powered by",
-                 (int)((VIRTUAL_WIDTH / 2) - (RAYLIB_LOGO_WIDTH / 2)),
-                 (int)((VIRTUAL_HEIGHT / 2) - (RAYLIB_LOGO_WIDTH / 2) - offsetB - lineWidth / 4),
-                 (int)(fontSize / 2), RAYWHITE);
+                 (int)((VIRTUAL_WIDTH/2) - (RAYLIB_LOGO_WIDTH/2)),
+                 (int)((VIRTUAL_HEIGHT/2) - (RAYLIB_LOGO_WIDTH/2) - offsetB - lineWidth/4),
+                 (int)(fontSize/2), RAYWHITE);
 
     switch (raylibLogo.state)
     {
         case LOGO_START:
-            if (((int)(raylibLogo.elapsedTime * 4)) % 2)
+            if (((int)(raylibLogo.elapsedTime*4)) % 2)
                 DrawRectangle(rectPosX, rectPosY, lineWidth, lineWidth, RAYWHITE);
             else
                 DrawRectangle(rectPosX, rectPosY, lineWidth, lineWidth, BLACK);

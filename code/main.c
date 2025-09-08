@@ -27,7 +27,7 @@ Viewport  view; // for rendering within aspect ratio
 // Local Functions Declaration
 // ----------------------------------------------------------------------------
 void CreateNewWindow(void); // Creates a new window with the proper initial settings
-void RunGameLoopForPlatform(void); // Runs the game loop depending on platform
+void RunGameLoop(void); // Runs the game loop depending on platform
 void UpdateCameraViewport(void);
 
 void UpdateDrawFrame(void); // Update and Draw the current frame
@@ -54,7 +54,7 @@ int main(void)
 
     // Start the game loop
     // (See UpdateDrawFrame() for the full game loop)
-    RunGameLoopForPlatform();
+    RunGameLoop();
 
     // De-Initialization
     // ----------------------------------------------------------------------------
@@ -79,7 +79,7 @@ void CreateNewWindow(void)
     SetWindowMinSize(320, 240);
 }
 
-void RunGameLoopForPlatform(void)
+void RunGameLoop(void)
 {
 #if defined(PLATFORM_WEB)
     const int emscriptenFPS = 0; // Let emscripten handle the framerate because setting a specific one is kinda janky
@@ -100,29 +100,29 @@ void RunGameLoopForPlatform(void)
 
 void UpdateCameraViewport(void)
 {
-    float winWidth = (float)GetScreenWidth();
-    float winHeight = (float)GetScreenHeight();
-    float windowAspect = winWidth / winHeight;
+    int winWidth = GetScreenWidth();
+    int winHeight = GetScreenHeight();
+    float windowAspect = (float)winWidth/(float)winHeight;
 
     if (windowAspect > ASPECT_RATIO)
     {
         // Window too wide → pillarbox
-        view.height = (int)winHeight;
-        view.width = (int)(winHeight * ASPECT_RATIO);
-        view.x = (winWidth - view.width) / 2;
+        view.height = winHeight;
+        view.width = (winHeight*ASPECT_RATIO);
+        view.x = (winWidth - view.width)/2;
         view.y = 0;
     }
     else
     {
         // Window too tall → letterbox
         view.width = winWidth;
-        view.height = (int)(winWidth / ASPECT_RATIO);
+        view.height = (int)(winWidth/ASPECT_RATIO);
         view.x = 0;
-        view.y = (winHeight - view.height) / 2;
+        view.y = (winHeight - view.height)/2;
     }
 
     game.camera.offset = (Vector2){ view.x + view.width/2.0f, view.y + view.height/2.0f };
-    game.camera.zoom   = (float)view.width / VIRTUAL_WIDTH;
+    game.camera.zoom   = (float)view.width/VIRTUAL_WIDTH;
 }
 
 // Update data and draw elements to the screen for the current frame
@@ -148,11 +148,12 @@ void UpdateDrawFrame(void)
     // ----------------------------------------------------------------------------
 
     BeginDrawing(); // Draw to screen
-        BeginScissorMode(view.x, // Draw within aspect ratio
-                         view.y, view.width, view.height);
+        ClearBackground(BLACK); // Clear previous frame
+
+        // Draw within aspect ratio
+        BeginScissorMode(view.x, view.y, view.width, view.height);
             BeginMode2D(game.camera); // Scale to camera view
 
-            ClearBackground(BLACK); // Default background color
 
             switch(game.currentScreen)
             {
@@ -167,5 +168,6 @@ void UpdateDrawFrame(void)
 
             EndMode2D();
         EndScissorMode();
+    // DrawFPS(0, 0);
     EndDrawing();
 }

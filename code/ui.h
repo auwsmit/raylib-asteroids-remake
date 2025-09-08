@@ -29,23 +29,19 @@
 // Types and Structures
 // ----------------------------------------------------------------------------
 
-typedef enum UiMenuState
-{
+typedef enum UiMenuState {
     UI_MENU_TITLE, UI_MENU_PAUSE, UI_MENU_GAMEPLAY
 } UiMenuState;
 
-typedef enum UiTitleMenuId
-{
+typedef enum UiTitleMenuId {
     UI_BID_START, UI_BID_EXIT
 } UiTitleMenuId;
 
-typedef enum UiPauseMenuId
-{
+typedef enum UiPauseMenuId {
     UI_BID_RESUME, UI_BID_BACKTOTITLE
 } UiPauseMenuId;
 
-typedef struct UiButton
-{
+typedef struct UiButton {
     const char *text;
     int fontSize;
     bool mouseHovered;
@@ -53,14 +49,13 @@ typedef struct UiButton
     Color color;
 } UiButton;
 
-typedef struct UiMenu
-{
+typedef struct UiMenu {
     UiButton *buttons; // allocate buttons for variable length menus
     unsigned int buttonCount;
 } UiMenu;
 
-typedef struct UiState // Holds data for the title screen menu
-{
+// Holds data for the title screen menu
+typedef struct UiState {
     UiButton title[2]; // Title text
     UiButton pause;
     UiMenu menus[3]; // title, difficulty, and pause menus
