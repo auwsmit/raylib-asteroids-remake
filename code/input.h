@@ -25,9 +25,10 @@ typedef enum InputAction {
     INPUT_ACTION_MENU_DOWN,
     INPUT_ACTION_PAUSE,
 
-    INPUT_ACTION_FORWARD,
     INPUT_ACTION_LEFT,
     INPUT_ACTION_RIGHT,
+    INPUT_ACTION_FORWARD,
+    INPUT_ACTION_SHOOT,
 } InputAction;
 
 typedef struct InputMappings {

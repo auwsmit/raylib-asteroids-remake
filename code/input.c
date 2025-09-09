@@ -21,18 +21,19 @@ void InitDefaultInputControls(void)
         },
 
         // Menu and Game
-        .keyMaps[INPUT_ACTION_CONFIRM] = { KEY_ENTER, KEY_SPACE },
-        .keyMaps[INPUT_ACTION_BACK] = { KEY_ESCAPE, KEY_BACKSPACE, },
-        .mouseMaps[INPUT_ACTION_BACK] = { MOUSE_RIGHT_BUTTON },
-        .keyMaps[INPUT_ACTION_MENU_UP] = { KEY_W, KEY_UP },
+        .keyMaps[INPUT_ACTION_CONFIRM] =   { KEY_ENTER, KEY_SPACE },
+        .keyMaps[INPUT_ACTION_BACK] =      { KEY_ESCAPE, KEY_BACKSPACE, },
+        .keyMaps[INPUT_ACTION_MENU_UP] =   { KEY_W, KEY_UP },
         .keyMaps[INPUT_ACTION_MENU_DOWN] = { KEY_S, KEY_UP },
-        .keyMaps[INPUT_ACTION_PAUSE] = { KEY_P },
+        .keyMaps[INPUT_ACTION_PAUSE] =     { KEY_P },
 
         // Player 1 controls
-        .keyMaps[INPUT_ACTION_LEFT] = { KEY_A, KEY_LEFT, },
-        .keyMaps[INPUT_ACTION_RIGHT] = { KEY_D, KEY_RIGHT, },
-        .keyMaps[INPUT_ACTION_FORWARD] = { KEY_W, KEY_UP, },
+        .keyMaps[INPUT_ACTION_LEFT] =      { KEY_A, KEY_LEFT, },
+        .keyMaps[INPUT_ACTION_RIGHT] =     { KEY_D, KEY_RIGHT, },
+        .keyMaps[INPUT_ACTION_FORWARD] =   { KEY_W, KEY_UP, },
         .mouseMaps[INPUT_ACTION_FORWARD] = { INPUT_MOUSE_LEFT_BUTTON },
+        .keyMaps[INPUT_ACTION_SHOOT] =     { KEY_SPACE },
+        .mouseMaps[INPUT_ACTION_SHOOT] =   { MOUSE_RIGHT_BUTTON },
     };
 
     gameInput = defaultControls;
@@ -52,7 +53,7 @@ bool IsInputActionPressed(InputAction action)
     KeyboardKey* keys = gameInput.keyMaps[action];
 
     // Check potential key combinations
-    for (int i = 0; i < INPUT_MAX_MAPS && keys[i] != 0; i++)
+    for (unsigned int i = 0; i < INPUT_MAX_MAPS && keys[i] != 0; i++)
     {
         KeyboardKey key = keys[i];
 
@@ -78,7 +79,7 @@ bool IsInputActionPressed(InputAction action)
 
     // Check mouse buttons
     MouseButton* mb = gameInput.mouseMaps[action];
-    for (int i = 0; i < INPUT_MAX_MAPS && mb[i] != 0; i++)
+    for (unsigned int i = 0; i < INPUT_MAX_MAPS && mb[i] != 0; i++)
     {
         MouseButton button = mb[i];
         if (button == 0) button = INPUT_MOUSE_NULL;
@@ -95,7 +96,7 @@ bool IsInputActionDown(InputAction action)
 {
     KeyboardKey* keys = gameInput.keyMaps[action];
 
-    for (int i = 0; i < INPUT_MAX_MAPS && keys[i] != 0; i++)
+    for (unsigned int i = 0; i < INPUT_MAX_MAPS && keys[i] != 0; i++)
     {
         KeyboardKey key = keys[i];
 
@@ -120,7 +121,7 @@ bool IsInputActionDown(InputAction action)
 
     // Check mouse buttons
     MouseButton* mb = gameInput.mouseMaps[action];
-    for (int i = 0; i < INPUT_MAX_MAPS && mb[i] != 0; i++)
+    for (unsigned int i = 0; i < INPUT_MAX_MAPS && mb[i] != 0; i++)
     {
         MouseButton button = mb[i];
         if (button == 0) button = INPUT_MOUSE_NULL;

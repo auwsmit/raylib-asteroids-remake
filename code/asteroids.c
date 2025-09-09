@@ -36,8 +36,16 @@ void InitGameState(void)
 
     };
 
+    // Missiles / Shots
+    for (unsigned int i = 0; i < MAX_SHOTS; i++)
+    {
+        Missile *shot = &defaultState.ship.shots[i];
+        shot->speed = SHOT_SPEED;
+        shot->radius = SHOT_RADIUS;
+    }
+
     // Random rocks
-    for (int i = 0; i < ASTEROID_AMOUNT; i++)
+    for (unsigned int i = 0; i < ASTEROID_AMOUNT; i++)
     {
         Asteroid *rock = &defaultState.rocks[i];
         float rockPosX = (float)GetRandomValue(0, VIRTUAL_WIDTH);
@@ -46,11 +54,18 @@ void InitGameState(void)
         rock->position = (Vector2){ rockPosX, rockPosY };
         rock->angle = (float)GetRandomValue(0, 360);
         rock->radius = (float)GetRandomValue(ASTEROID_MIN_RADIUS,ASTEROID_MAX_RADIUS);
+        rock->life = 3;
 
         // Speed proportional to size
-        float scaledSpeed = ASTEROID_SPEED*(ASTEROID_MAX_RADIUS - rock->radius)/(ASTEROID_MAX_RADIUS - ASTEROID_MIN_RADIUS);
-        if (scaledSpeed < ASTEROID_SPEED/10) // minimum speed
-            scaledSpeed = ASTEROID_SPEED/10;
+        float radiusRange = ASTEROID_MAX_RADIUS - ASTEROID_MIN_RADIUS;
+        float scaledSpeed;
+        if (radiusRange < EPSILON)
+            scaledSpeed = ASTEROID_SPEED;
+        else
+            scaledSpeed = ASTEROID_SPEED*(ASTEROID_MAX_RADIUS - rock->radius)/radiusRange;
+
+        if (scaledSpeed < ASTEROID_SPEED/8) // minimum speed
+            scaledSpeed = ASTEROID_SPEED/8;
 
         rock->speed = scaledSpeed;
     }
@@ -63,16 +78,16 @@ void InitGameState(void)
 
 Sound GenBeep(float freq, float lengthSec)
 {
-    int sampleRate = 44100;
-    int samples = (int)(lengthSec*sampleRate);
+    unsigned int sampleRate = 44100;
+    unsigned int samples = (int)(lengthSec*sampleRate);
     short *data = MemAlloc(samples*sizeof(short));
 
     // fade length in samples
     // (This prevents an unpleasant "pop" noise when the sound starts or stops)
-    int fadeSamples = (int)(0.005f*sampleRate); // 5 ms
+    unsigned int fadeSamples = (unsigned int)(0.005f*sampleRate); // 5 ms
 
     // Generate wave data
-    for (int i = 0; i < samples; i++)
+    for (unsigned int i = 0; i < samples; i++)
     {
         float timeInSeconds = (float)i/sampleRate;
         float sample = sinf(2.0f*PI*freq*timeInSeconds);
@@ -110,6 +125,25 @@ void FreeBeeps(void)
         UnloadSound(game.beeps[i]);
 }
 
+void ShootMissile(SpaceShip *ship)
+{
+    // spawn bullet
+    if (ship->shotCount == MAX_SHOTS)
+        ship->shotCount = 0;
+
+    Missile *shot = &ship->shots[ship->shotCount];
+
+    shot->exists = true;
+    shot->angle = ship->rotation + 180;
+    Vector2 spawnPos = { 0, ship->length/2 + shot->radius*3 };
+    spawnPos = Vector2Rotate(spawnPos, shot->angle*DEG2RAD);
+    spawnPos = Vector2Add(spawnPos, ship->position);
+    shot->position = spawnPos;
+    shot->despawnTimer = 1.0f;
+
+    ship->shotCount++;
+}
+
 bool IsShipOnEdge(SpaceShip *ship)
 {
     Vector2 shipTriangle[3] = {
@@ -132,26 +166,15 @@ bool IsShipOnEdge(SpaceShip *ship)
     return false;
 }
 
-bool IsRockOnEdge(Asteroid *rock)
-{
-    if ((rock->position.x - rock->radius < 0) ||
-        (rock->position.x + rock->radius > VIRTUAL_WIDTH) ||
-        (rock->position.y - rock->radius < 0) ||
-        (rock->position.y + rock->radius > VIRTUAL_HEIGHT))
-        return true; // Rock is past the edge
-
-    // Rock is not past edge
-    return false;
-}
-
-bool IsWithinScreen(Vector2 position, float radius)
+bool IsCircleOnEdge(Vector2 position, float radius)
 {
     if ((position.x - radius < 0) ||
         (position.x + radius > VIRTUAL_WIDTH) ||
         (position.y - radius < 0) ||
         (position.y + radius > VIRTUAL_HEIGHT))
-        return true; // Rock is past the edge
+        return true; // Circular object is past the edge
 
+    // Circular object is not past edge
     return false;
 }
 
@@ -181,18 +204,36 @@ void UpdateGameFrame(void)
 
     if (!game.isPaused)
     {
-        // Update ship
-        UpdateShip(&game.ship);
-
         // Update rocks
         for (unsigned int i = 0; i < ASTEROID_AMOUNT; i++)
         {
-            UpdateRock(&game.rocks[i]);
+            UpdateAsteroid(&game.rocks[i]);
         }
+
+        // Update bullets
+        for (unsigned int i = 0; i < MAX_SHOTS; i++)
+        {
+            UpdateMissile(&game.ship.shots[i]);
+        }
+
+        // Update ship
+        UpdateShip(&game.ship);
     }
 
     // Update user interface elements and logic
     UpdateUiFrame();
+}
+
+void WrapPastEdge(Vector2 *position)
+{
+    if (position->x < 0)            // past left edge
+        position->x += VIRTUAL_WIDTH;
+    if (position->x > VIRTUAL_WIDTH) // past right edge
+        position->x -= VIRTUAL_WIDTH;
+    if (position->y < 0)            // past top edge
+        position->y += VIRTUAL_HEIGHT;
+    if (position->y > VIRTUAL_HEIGHT) // past bottom edge
+        position->y -= VIRTUAL_HEIGHT;
 }
 
 void UpdateShip(SpaceShip *ship)
@@ -200,6 +241,7 @@ void UpdateShip(SpaceShip *ship)
     ship->isAtScreenEdge = IsShipOnEdge(ship);
 
     // Player Input
+    // Rotate (mouse)
     if ((Vector2Length(GetMouseDelta()) != 0) ||
         IsMouseButtonDown(MOUSE_LEFT_BUTTON))
     {
@@ -208,8 +250,9 @@ void UpdateShip(SpaceShip *ship)
         float distanceToMouse = Vector2Length(mouseDirection);
         if ((IsInputActionDown(INPUT_ACTION_FORWARD) && distanceToMouse > ship->length) ||
             !IsInputActionDown(INPUT_ACTION_FORWARD))
-            ship->rotation = atan2(mouseDirection.y, mouseDirection.x)*RAD2DEG + 90;
+            ship->rotation = (float)atan2(mouseDirection.y, mouseDirection.x)*RAD2DEG + 90;
     }
+    // Rotate (keys)
     if (IsInputActionDown(INPUT_ACTION_LEFT))
     {
         ship->rotation -= SHIP_TURN_SPEED*GetFrameTime();
@@ -219,6 +262,7 @@ void UpdateShip(SpaceShip *ship)
         ship->rotation += SHIP_TURN_SPEED*GetFrameTime();
     }
 
+    // Thrust
     if (IsInputActionDown(INPUT_ACTION_FORWARD))
     {
         Vector2 thrust = (Vector2){ 0, -SHIP_THRUST_SPEED };
@@ -226,6 +270,12 @@ void UpdateShip(SpaceShip *ship)
         thrust = Vector2Scale(thrust, GetFrameTime());
         ship->velocity = Vector2Add(ship->velocity, thrust);
         ship->velocity = Vector2ClampValue(ship->velocity, 0, SHIP_MAX_SPEED);
+    }
+
+    // Shoot missile
+    if (IsInputActionPressed(INPUT_ACTION_SHOOT))
+    {
+        ShootMissile(ship);
     }
 
     // Apply friction (smooth exponential decay)
@@ -236,52 +286,57 @@ void UpdateShip(SpaceShip *ship)
     Vector2 scaledVelocity = Vector2Scale(ship->velocity, GetFrameTime());
     ship->position = Vector2Add(ship->position, scaledVelocity);
 
-    // Loop ship past screen edge
-    if (ship->position.x < 0)            // past left edge
-        ship->position.x += VIRTUAL_WIDTH;
-    if (ship->position.x > VIRTUAL_WIDTH) // past right edge
-        ship->position.x -= VIRTUAL_WIDTH;
-    if (ship->position.y < 0)            // past top edge
-        ship->position.y += VIRTUAL_HEIGHT;
-    if (ship->position.y > VIRTUAL_HEIGHT) // past bottom edge
-        ship->position.y -= VIRTUAL_HEIGHT;
+    WrapPastEdge(&ship->position);
 }
 
-void UpdateRock(Asteroid *rock)
+void UpdateAsteroid(Asteroid *rock)
 {
-    rock->isAtScreenEdge = IsRockOnEdge(rock);
+    rock->isAtScreenEdge = IsCircleOnEdge(rock->position, rock->radius);
 
     Vector2 currentVelocity = (Vector2){ 0, rock->speed*GetFrameTime() };
-    currentVelocity = Vector2Rotate(currentVelocity, rock->angle);
+    currentVelocity = Vector2Rotate(currentVelocity, rock->angle*DEG2RAD);
     rock->position = Vector2Add(rock->position, currentVelocity);
+    WrapPastEdge(&rock->position);
+}
 
-    // Loop ship past screen edge
-    if (rock->position.x < 0)             // past left edge
-        rock->position.x += VIRTUAL_WIDTH;
-    if (rock->position.x > VIRTUAL_WIDTH)  // past right edge
-        rock->position.x -= VIRTUAL_WIDTH;
-    if (rock->position.y < 0)             // past top edge
-        rock->position.y += VIRTUAL_HEIGHT;
-    if (rock->position.y > VIRTUAL_HEIGHT) // past bottom edge
-        rock->position.y -= VIRTUAL_HEIGHT;
+void UpdateMissile(Missile *shot)
+{
+    shot->isAtScreenEdge = IsCircleOnEdge(shot->position, shot->radius);
+
+    // Update position
+    Vector2 currentVelocity = (Vector2){ 0, shot->speed*GetFrameTime() };
+    currentVelocity = Vector2Rotate(currentVelocity, shot->angle*DEG2RAD);
+    shot->position = Vector2Add(shot->position, currentVelocity);
+    WrapPastEdge(&shot->position);
+
+    // Update despawn timer
+    shot->despawnTimer -= GetFrameTime();
+    if (shot->despawnTimer <= 0)
+        shot->exists = false;
 }
 
 void DrawGameFrame(void)
 {
-    // Draw ship
-    DrawSpaceShip(&game.ship);
-
     // Draw rocks
     for (unsigned int i = 0; i < ASTEROID_AMOUNT; i++)
     {
         DrawAsteroid(&game.rocks[i]);
     }
 
+    // Draw missiles
+    for (unsigned int i = 0; i < MAX_SHOTS; i++)
+    {
+        DrawMissile(&game.ship.shots[i]);
+    }
+
+    // Draw ship
+    DrawShip(&game.ship);
+
     // Draw user interface elements
     DrawUiFrame();
 }
 
-void DrawSpaceShip(SpaceShip *ship)
+void DrawShip(SpaceShip *ship)
 {
     Vector2 shipTriangle[3] = {
         (Vector2){ 0, -ship->length/2 },
@@ -297,7 +352,7 @@ void DrawSpaceShip(SpaceShip *ship)
     }
     DrawTriangle(shipTriangle[0], shipTriangle[1], shipTriangle[2], RAYWHITE);
 
-    // clones at opposite side of screen
+    // Clones at opposite side of screen
     if (ship->isAtScreenEdge)
     {
         Vector2 offsets[8] = {
@@ -311,7 +366,7 @@ void DrawSpaceShip(SpaceShip *ship)
             { -VIRTUAL_WIDTH, VIRTUAL_HEIGHT }   // bottom-left
         };
 
-        for (int i = 0; i < 8; i++)
+        for (unsigned int i = 0; i < 8; i++)
         {
             Vector2 cloneShip[3];
             cloneShip[0] = Vector2Add(shipTriangle[0], offsets[i]);
@@ -325,7 +380,7 @@ void DrawSpaceShip(SpaceShip *ship)
 
 void DrawAsteroid(Asteroid *rock)
 {
-    DrawCircle(rock->position.x, rock->position.y, rock->radius, RAYWHITE);
+    DrawCircleV((Vector2){ rock->position.x, rock->position.y }, rock->radius, RAYWHITE);
     Vector2 offsets[8] = {
         { VIRTUAL_WIDTH, 0 },   // right
         { -VIRTUAL_WIDTH, 0 },  // left
@@ -340,10 +395,37 @@ void DrawAsteroid(Asteroid *rock)
     // clones at opposite side of screen
     if (rock->isAtScreenEdge)
     {
-        for (int i = 0; i < 8; i++)
+        for (unsigned int i = 0; i < 8; i++)
         {
-            Vector2 cloneRock = Vector2Add(rock->position, offsets[i]);
-            DrawCircle(cloneRock.x, cloneRock.y, rock->radius, RAYWHITE);
+            Vector2 cloneAsteroid = Vector2Add(rock->position, offsets[i]);
+            DrawCircleV((Vector2){ cloneAsteroid.x, cloneAsteroid.y }, rock->radius, RAYWHITE);
+        }
+    }
+}
+
+void DrawMissile(Missile *shot)
+{
+    if (!shot->exists) return;
+
+    DrawCircleV((Vector2){ shot->position.x, shot->position.y }, shot->radius, RAYWHITE);
+    Vector2 offsets[8] = {
+        { VIRTUAL_WIDTH, 0 },   // right
+        { -VIRTUAL_WIDTH, 0 },  // left
+        { 0, -VIRTUAL_HEIGHT }, // up
+        { 0, VIRTUAL_HEIGHT },  // down
+        { VIRTUAL_WIDTH, -VIRTUAL_HEIGHT },  // top-right
+        { -VIRTUAL_WIDTH, -VIRTUAL_HEIGHT }, // top-left
+        { VIRTUAL_WIDTH, VIRTUAL_HEIGHT },   // bottom-right
+        { -VIRTUAL_WIDTH, VIRTUAL_HEIGHT }   // bottom-left
+    };
+
+    // clones at opposite side of screen
+    if (shot->isAtScreenEdge)
+    {
+        for (unsigned int i = 0; i < 8; i++)
+        {
+            Vector2 cloneAsteroid = Vector2Add(shot->position, offsets[i]);
+            DrawCircleV((Vector2){ cloneAsteroid.x, cloneAsteroid.y }, shot->radius, RAYWHITE);
         }
     }
 }

@@ -87,7 +87,7 @@ UiButton *InitUiMenuButton(char *text, int fontSize, float textPosX, float textP
 
 UiButton *InitUiMenuButtonRelative(char* text, int fontSize, UiButton *originButton, float offsetY, UiMenu *menu)
 {
-    float originWidth = MeasureText(originButton->text, originButton->fontSize);
+    float originWidth = (float)MeasureText(originButton->text, originButton->fontSize);
     float originPosX = (originButton->position.x + originWidth/2);
     float textPosX = originPosX - MeasureText(text, fontSize)/2;
     float textPosY = originButton->position.y + originButton->fontSize;
@@ -235,7 +235,6 @@ void UpdateUiButtonMouseHover(UiButton *button)
 
 void UpdateUiButtonSelect(UiButton *button)
 {
-
     Vector2 mousePos = GetScaledMousePosition();
 
     // Select pause button
@@ -243,6 +242,7 @@ void UpdateUiButtonSelect(UiButton *button)
          (!IsMouseButtonPressed(MOUSE_RIGHT_BUTTON) && IsMouseWithinUiButton(mousePos, button)))
     {
         ChangeUiMenu(UI_MENU_PAUSE);
+        PlaySound(game.beeps[BEEP_MENU]);
     }
 
     // Select a menu button

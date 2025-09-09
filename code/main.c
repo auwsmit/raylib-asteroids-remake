@@ -68,13 +68,12 @@ int main(void)
 
 void CreateNewWindow(void)
 {
-#if defined(PLATFORM_WEB)
-    SetConfigFlags(0); // no vsync or window resize for web
-#else
-    unsigned int windowFlags = FLAG_WINDOW_RESIZABLE;
+    unsigned int windowFlags = FLAG_MSAA_4X_HINT;
+#if !defined(PLATFORM_WEB) // no resize or vsync for web, emscripten handles that
+    windowFlags = FLAG_WINDOW_RESIZABLE;
     if (VSYNC_ENABLED) windowFlags |= FLAG_VSYNC_HINT;
-    SetConfigFlags(windowFlags);
 #endif
+    SetConfigFlags(windowFlags);
     InitWindow(DEFAULT_WIDTH, DEFAULT_HEIGHT, WINDOW_TITLE);
     SetWindowMinSize(320, 240);
 }
@@ -108,7 +107,7 @@ void UpdateCameraViewport(void)
     {
         // Window too wide → pillarbox
         view.height = winHeight;
-        view.width = (winHeight*ASPECT_RATIO);
+        view.width = (int)(winHeight*ASPECT_RATIO);
         view.x = (winWidth - view.width)/2;
         view.y = 0;
     }
@@ -125,7 +124,7 @@ void UpdateCameraViewport(void)
     game.camera.zoom   = (float)view.width/VIRTUAL_WIDTH;
 }
 
-// Update data and draw elements to the screen for the current frame
+// Update game data and draw elements to the screen for the current frame
 void UpdateDrawFrame(void)
 {
     // Update
@@ -146,14 +145,12 @@ void UpdateDrawFrame(void)
 
     // Draw
     // ----------------------------------------------------------------------------
+    BeginDrawing();
+    ClearBackground(BLACK);
 
-    BeginDrawing(); // Draw to screen
-        ClearBackground(BLACK); // Clear previous frame
-
-        // Draw within aspect ratio
-        BeginScissorMode(view.x, view.y, view.width, view.height);
-            BeginMode2D(game.camera); // Scale to camera view
-
+        BeginScissorMode(view.x, view.y, // Draw within aspect ratio
+                         view.width, view.height);
+            BeginMode2D(game.camera);    // Scale to camera view
 
             switch(game.currentScreen)
             {
@@ -168,6 +165,9 @@ void UpdateDrawFrame(void)
 
             EndMode2D();
         EndScissorMode();
-    // DrawFPS(0, 0);
+
+    // Debug:
+    DrawFPS(0, 0);
+
     EndDrawing();
 }
