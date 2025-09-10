@@ -15,8 +15,6 @@
 
 void InitGameState(void)
 {
-    float shipAngle = (float)GetRandomValue(0, 360);
-
     GameState defaultState = {
         // Game boots to raylib logo animation
         .currentScreen = SCREEN_LOGO,
@@ -31,8 +29,18 @@ void InitGameState(void)
             },
             .width = SHIP_WIDTH,
             .length = SHIP_LENGTH,
-            .rotation = shipAngle,
+            .rotation = 90.0f, // pointing right
+            .respawnTimer = SHIP_RESPAWN_TIME,
         },
+
+        .shipTri = {
+            (Vector2){ 0, -SHIP_LENGTH/2 },
+            (Vector2){ -SHIP_WIDTH/2, SHIP_WIDTH/2 },
+            (Vector2){  SHIP_WIDTH/2, SHIP_WIDTH/2 },
+        },
+
+
+        .lives = 3,
 
     };
 
@@ -45,7 +53,7 @@ void InitGameState(void)
     }
 
     // Random rocks
-    for (unsigned int i = 0; i < ASTEROID_AMOUNT; i++)
+    for (unsigned int i = 0; i < MAX_ASTEROIDS; i++)
     {
         Asteroid *rock = &defaultState.rocks[i];
         float rockPosX = (float)GetRandomValue(0, VIRTUAL_WIDTH);
@@ -139,26 +147,20 @@ void ShootMissile(SpaceShip *ship)
     spawnPos = Vector2Rotate(spawnPos, shot->angle*DEG2RAD);
     spawnPos = Vector2Add(spawnPos, ship->position);
     shot->position = spawnPos;
-    shot->despawnTimer = 1.0f;
+    shot->despawnTimer = 0.8f;
 
     ship->shotCount++;
 }
 
 bool IsShipOnEdge(SpaceShip *ship)
 {
-    Vector2 shipTriangle[3] = {
-        (Vector2){ 0, -ship->length/2 },
-        (Vector2){ -ship->width/2, ship->width/2 },
-        (Vector2){  ship->width/2, ship->width/2 },
-    };
-
     // Check each point
     for (unsigned int i = 0; i < 3; i++)
     {
-        shipTriangle[i] = Vector2Rotate(shipTriangle[i], ship->rotation*DEG2RAD);
-        shipTriangle[i] = Vector2Add(shipTriangle[i], ship->position);
-        if ((shipTriangle[i].x < 0) || (shipTriangle[i].x > VIRTUAL_WIDTH) ||
-            (shipTriangle[i].y < 0) || (shipTriangle[i].y > VIRTUAL_HEIGHT))
+        Vector2 shipPoint = Vector2Rotate(game.shipTri[i], ship->rotation*DEG2RAD);
+        shipPoint = Vector2Add(shipPoint, ship->position);
+        if ((shipPoint.x < 0) || (shipPoint.x > VIRTUAL_WIDTH) ||
+            (shipPoint.y < 0) || (shipPoint.y > VIRTUAL_HEIGHT))
                 return true; // At least one point is past the edge
     }
 
@@ -175,6 +177,22 @@ bool IsCircleOnEdge(Vector2 position, float radius)
         return true; // Circular object is past the edge
 
     // Circular object is not past edge
+    return false;
+}
+
+bool CheckCollisionAsteroidShip(Asteroid *rock, SpaceShip *ship)
+{
+    // Check each point
+    for (unsigned int i = 0; i < 3; i++)
+    {
+        Vector2 shipPoint = Vector2Rotate(game.shipTri[i], ship->rotation*DEG2RAD);
+        shipPoint = Vector2Add(shipPoint, ship->position);
+        float distanceFromAsteroid = Vector2Length(Vector2Subtract(shipPoint, rock->position));
+        bool isShipWithinAsteroid = distanceFromAsteroid < rock->radius;
+        if (isShipWithinAsteroid)
+            return true;
+    }
+
     return false;
 }
 
@@ -205,9 +223,13 @@ void UpdateGameFrame(void)
     if (!game.isPaused)
     {
         // Update rocks
-        for (unsigned int i = 0; i < ASTEROID_AMOUNT; i++)
+        for (unsigned int i = 0; i < MAX_ASTEROIDS; i++)
         {
             UpdateAsteroid(&game.rocks[i]);
+            if (CheckCollisionAsteroidShip(&game.rocks[i], &game.ship))
+            {
+                game.ship.exploded = true;
+            }
         }
 
         // Update bullets
@@ -217,7 +239,18 @@ void UpdateGameFrame(void)
         }
 
         // Update ship
-        UpdateShip(&game.ship);
+        if (!game.ship.exploded)
+            UpdateShip(&game.ship);
+        else
+            game.ship.respawnTimer -= GetFrameTime();
+
+        if (game.ship.respawnTimer <= 0)
+        {
+            game.ship.exploded = false;
+            game.ship.position = (Vector2){ VIRTUAL_WIDTH/2, VIRTUAL_HEIGHT/2 };
+            game.ship.velocity = (Vector2){ 0, 0 };
+            game.ship.respawnTimer = SHIP_RESPAWN_TIME;
+        }
     }
 
     // Update user interface elements and logic
@@ -285,7 +318,6 @@ void UpdateShip(SpaceShip *ship)
     // Update position
     Vector2 scaledVelocity = Vector2Scale(ship->velocity, GetFrameTime());
     ship->position = Vector2Add(ship->position, scaledVelocity);
-
     WrapPastEdge(&ship->position);
 }
 
@@ -318,7 +350,7 @@ void UpdateMissile(Missile *shot)
 void DrawGameFrame(void)
 {
     // Draw rocks
-    for (unsigned int i = 0; i < ASTEROID_AMOUNT; i++)
+    for (unsigned int i = 0; i < MAX_ASTEROIDS; i++)
     {
         DrawAsteroid(&game.rocks[i]);
     }
@@ -330,7 +362,10 @@ void DrawGameFrame(void)
     }
 
     // Draw ship
-    DrawShip(&game.ship);
+    if (!game.ship.exploded)
+        DrawShip(&game.ship);
+    else if ((SHIP_RESPAWN_TIME - game.ship.respawnTimer) < 0.5)
+        DrawCircleV(game.ship.position, game.ship.length, RED);
 
     // Draw user interface elements
     DrawUiFrame();
@@ -338,19 +373,19 @@ void DrawGameFrame(void)
 
 void DrawShip(SpaceShip *ship)
 {
-    Vector2 shipTriangle[3] = {
-        (Vector2){ 0, -ship->length/2 },
-        (Vector2){ -ship->width/2, ship->width/2 },
-        (Vector2){  ship->width/2, ship->width/2 },
-    };
-
     // Transform ship triangle
+    Vector2 shipPoints[3] = {
+        game.shipTri[1],
+        game.shipTri[2],
+        game.shipTri[3],
+    };
     for (unsigned int i = 0; i < 3; i++)
     {
-        shipTriangle[i] = Vector2Rotate(shipTriangle[i], ship->rotation*DEG2RAD);
-        shipTriangle[i] = Vector2Add(shipTriangle[i], ship->position);
+        // shipPoints[i] = game.shipTri[i];
+        shipPoints[i] = Vector2Rotate(game.shipTri[i], ship->rotation*DEG2RAD);
+        shipPoints[i] = Vector2Add(shipPoints[i], ship->position);
     }
-    DrawTriangle(shipTriangle[0], shipTriangle[1], shipTriangle[2], RAYWHITE);
+    DrawTriangle(shipPoints[0], shipPoints[1], shipPoints[2], RAYWHITE);
 
     // Clones at opposite side of screen
     if (ship->isAtScreenEdge)
@@ -369,9 +404,9 @@ void DrawShip(SpaceShip *ship)
         for (unsigned int i = 0; i < 8; i++)
         {
             Vector2 cloneShip[3];
-            cloneShip[0] = Vector2Add(shipTriangle[0], offsets[i]);
-            cloneShip[1] = Vector2Add(shipTriangle[1], offsets[i]);
-            cloneShip[2] = Vector2Add(shipTriangle[2], offsets[i]);
+            cloneShip[0] = Vector2Add(game.shipTri[0], offsets[i]);
+            cloneShip[1] = Vector2Add(game.shipTri[1], offsets[i]);
+            cloneShip[2] = Vector2Add(game.shipTri[2], offsets[i]);
 
             DrawTriangle(cloneShip[0], cloneShip[1], cloneShip[2], RAYWHITE);
         }
