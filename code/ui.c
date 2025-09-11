@@ -95,7 +95,7 @@ UiButton *InitUiMenuButtonRelative(char* text, int fontSize, UiButton *originBut
     return InitUiMenuButton(text, fontSize, textPosX, textPosY + offsetY, menu);
 }
 
-void FreeUiMenuButtons(void)
+void FreeUiState(void)
 {
     for (unsigned int i = 0; i < ARRAY_SIZE(ui.menus); i++)
         MemFree(ui.menus[i].buttons);
@@ -298,7 +298,7 @@ void ChangeUiMenu(UiMenuState newMenu)
         // Clear old game state if returning from gameplay
         if (game.currentScreen == SCREEN_GAMEPLAY)
         {
-            FreeBeeps();
+            FreeGameState();
             InitGameState();
             game.currentScreen = SCREEN_TITLE;
         }
@@ -400,20 +400,20 @@ void DrawUiCursor(UiButton *selectedButton)
                  RAYWHITE);
 }
 
-void DrawUiScores(void)
-{
-    int fontSize = 180;
+// void DrawUiScores(void)
+// {
+//     int fontSize = 180;
 
-    const char *scoreLMsg = TextFormat("%i", game.scoreL);
-    int scoreLWidth = MeasureText(scoreLMsg, fontSize);
-    int scoreLPosX = VIRTUAL_WIDTH/4 - scoreLWidth/2;
+//     const char *scoreLMsg = TextFormat("%i", game.scoreL);
+//     int scoreLWidth = MeasureText(scoreLMsg, fontSize);
+//     int scoreLPosX = VIRTUAL_WIDTH/4 - scoreLWidth/2;
 
-    const char *scoreRMsg = TextFormat("%i", game.scoreR);
-    int scoreRWidth = MeasureText(scoreRMsg, fontSize);
-    int scoreRPosX = VIRTUAL_WIDTH/4*3 - scoreRWidth/2;
+//     const char *scoreRMsg = TextFormat("%i", game.scoreR);
+//     int scoreRWidth = MeasureText(scoreRMsg, fontSize);
+//     int scoreRPosX = VIRTUAL_WIDTH/4*3 - scoreRWidth/2;
 
-    int scorePosY = 50;
-    DrawText(scoreLMsg, scoreLPosX, scorePosY, fontSize, RAYWHITE);
-    DrawText(scoreRMsg, scoreRPosX, scorePosY, fontSize, RAYWHITE);
-}
+//     int scorePosY = 50;
+//     DrawText(scoreLMsg, scoreLPosX, scorePosY, fontSize, RAYWHITE);
+//     DrawText(scoreRMsg, scoreRPosX, scorePosY, fontSize, RAYWHITE);
+// }
 

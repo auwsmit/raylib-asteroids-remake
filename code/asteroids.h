@@ -14,23 +14,20 @@
 #define SHIP_TURN_SPEED 190.0f // turn X degrees per second
 #define SHIP_THRUST_SPEED 400.0f
 #define SHIP_MAX_SPEED 1000.0f
-#define SPACE_FRICTION 5.0f
+#define SPACE_FRICTION 2.0f
 #define SHIP_RESPAWN_TIME 2.0f
 
 #define MAX_SHOTS 4
 #define SHOT_RADIUS 5.0f
 #define SHOT_SPEED 1100.0f
 
-#if 0 // performance test
-#define MAX_ASTEROIDS 10000
-#define ASTEROID_MIN_RADIUS 1.0f
-#define ASTEROID_MAX_RADIUS 5.0f
-#else
-#define MAX_ASTEROIDS 10
-#define ASTEROID_MIN_RADIUS 10
-#define ASTEROID_MAX_RADIUS 80
-#endif
+#define ASTEROID_COUNT 3
+#define ASTEROID_RADIUS_BIG 80
+#define ASTEROID_RADIUS_MEDIUM 40
+#define ASTEROID_RADIUS_SMALL 20
 #define ASTEROID_SPEED 300.0f
+
+#define EXPLOSION_TIME 0.4f
 
 // Types and Structures
 // ----------------------------------------------------------------------------
@@ -44,8 +41,14 @@ typedef enum GameMode {
 } GameMode;
 
 typedef enum GameBeep {
-    BEEP_MENU,
+    BEEP_MENU, BEEP_SHOOT, BEEP_EXPLODE
 } GameBeep;
+
+typedef enum SizeOfAsteroid {
+    ASTEROID_SIZE_SMALL = 1,
+    ASTEROID_SIZE_MEDIUM = 2,
+    ASTEROID_SIZE_BIG = 3,
+} SizeOfAsteroid;
 
 typedef struct Asteroid {
     Vector2 position;
@@ -53,8 +56,9 @@ typedef struct Asteroid {
     float angle;
     float speed;
     float radius;
-    unsigned int life;
+    SizeOfAsteroid size;
     bool isAtScreenEdge;
+    bool exploded;
 } Asteroid;
 
 typedef struct Missile {
@@ -64,12 +68,13 @@ typedef struct Missile {
     float speed;
     float radius;
     float despawnTimer;
+    float explosionTimer;
     bool isAtScreenEdge;
-    bool exists;
+    bool exploded;
 } Missile;
 
 typedef struct SpaceShip {
-    Missile shots[MAX_SHOTS];
+    Missile missiles[MAX_SHOTS];
     Vector2 position;
     Vector2 velocity;
     float rotation; // in degrees, 0 is pointing up, 90 is right
@@ -82,16 +87,18 @@ typedef struct SpaceShip {
 } SpaceShip;
 
 typedef struct GameState {
-    Sound beeps[1];
+    Sound beeps[3];
     Camera2D camera;
     SpaceShip ship;
-    Asteroid rocks[MAX_ASTEROIDS];
+    Asteroid *rocks;
     GameMode currentMode;
-    Vector2 shipTri[3];
+    Vector2 shipTriangle[3];
     ScreenState currentScreen;
-    unsigned int scoreL;
-    unsigned int scoreR;
-    unsigned int lives;
+    unsigned int rockCount;
+    unsigned int eliminatedCount;
+    // unsigned int scoreL;
+    // unsigned int scoreR;
+    // unsigned int lives;
     bool isPaused;
     bool gameShouldExit;
 } GameState;
@@ -104,24 +111,26 @@ extern GameState game; // global declaration
 // Initialization
 void InitGameState(void); // Initialize game data and allocate memory for beeps
 Sound GenBeep(float freq, float lengthSec); // Generate and allocate memory a sine wave buffer for a beep
-void FreeBeeps(void);
+void FreeGameState(void); // Free any allocated memory within game state
 
-// Spawn
+// Create/Destroy Entities
 void ShootMissile(SpaceShip *ship);
-// void SpawnAsteroid(void);
+Asteroid *CreateAsteroid(SizeOfAsteroid size, Vector2 position, float angle);
+void CreateAsteroidRandom(SizeOfAsteroid size);
+void SplitAsteroid(Asteroid *rock);
 
 // Collision
 bool IsShipOnEdge(SpaceShip *ship);
 bool IsCircleOnEdge(Vector2 position, float radius);
 bool CheckCollisionAsteroidShip(Asteroid *rock, SpaceShip *ship);
-// bool CheckCollisionAsteroidMissile(Asteroid *rock, Missile *shot);
 
-// Update / User Input
+// Update & User Input
 void UpdateGameFrame(void); // Updates all the game's data and objects for the current frame
 void WrapPastEdge(Vector2 *position);
 void UpdateAsteroid(Asteroid *rock);
 void UpdateMissile(Missile *shot);
 void UpdateShip(SpaceShip *ship);
+void ResetShip(SpaceShip *ship);
 
 // Draw
 void DrawGameFrame(void); // Draws all the game's objects for the current frame
@@ -130,6 +139,5 @@ void DrawMissile(Missile *shot);
 void DrawShip(SpaceShip *ship);
 
 // Game functions
-void ResetShip(SpaceShip *ship);
 
 #endif // ASTEROIDS_GAME_HEADER_GUARD

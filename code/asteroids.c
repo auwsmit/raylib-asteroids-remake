@@ -33,55 +33,37 @@ void InitGameState(void)
             .respawnTimer = SHIP_RESPAWN_TIME,
         },
 
-        .shipTri = {
+        // Define shape of ship
+        .shipTriangle = {
             (Vector2){ 0, -SHIP_LENGTH/2 },
             (Vector2){ -SHIP_WIDTH/2, SHIP_WIDTH/2 },
             (Vector2){  SHIP_WIDTH/2, SHIP_WIDTH/2 },
         },
 
-
-        .lives = 3,
+        // .lives = 3,
 
     };
 
     // Missiles / Shots
     for (unsigned int i = 0; i < MAX_SHOTS; i++)
     {
-        Missile *shot = &defaultState.ship.shots[i];
+        Missile *shot = &defaultState.ship.missiles[i];
         shot->speed = SHOT_SPEED;
         shot->radius = SHOT_RADIUS;
     }
 
-    // Random rocks
-    for (unsigned int i = 0; i < MAX_ASTEROIDS; i++)
-    {
-        Asteroid *rock = &defaultState.rocks[i];
-        float rockPosX = (float)GetRandomValue(0, VIRTUAL_WIDTH);
-        float rockPosY = (float)GetRandomValue(0, VIRTUAL_HEIGHT);
-
-        rock->position = (Vector2){ rockPosX, rockPosY };
-        rock->angle = (float)GetRandomValue(0, 360);
-        rock->radius = (float)GetRandomValue(ASTEROID_MIN_RADIUS,ASTEROID_MAX_RADIUS);
-        rock->life = 3;
-
-        // Speed proportional to size
-        float radiusRange = ASTEROID_MAX_RADIUS - ASTEROID_MIN_RADIUS;
-        float scaledSpeed;
-        if (radiusRange < EPSILON)
-            scaledSpeed = ASTEROID_SPEED;
-        else
-            scaledSpeed = ASTEROID_SPEED*(ASTEROID_MAX_RADIUS - rock->radius)/radiusRange;
-
-        if (scaledSpeed < ASTEROID_SPEED/8) // minimum speed
-            scaledSpeed = ASTEROID_SPEED/8;
-
-        rock->speed = scaledSpeed;
-    }
-
     // Allocate memory for beep sine waves
     defaultState.beeps[BEEP_MENU] = GenBeep(300.0f, 0.03f);
+    defaultState.beeps[BEEP_SHOOT] = GenBeep(400.0f, 0.05f);
+    defaultState.beeps[BEEP_EXPLODE] = GenBeep(150.0f, EXPLOSION_TIME);
 
     game = defaultState;
+
+    // Create asteroids
+    for (unsigned int i = 0; i < ASTEROID_COUNT; i++)
+    {
+        CreateAsteroidRandom(ASTEROID_SIZE_BIG);
+    }
 }
 
 Sound GenBeep(float freq, float lengthSec)
@@ -127,10 +109,11 @@ Sound GenBeep(float freq, float lengthSec)
     return beep;
 }
 
-void FreeBeeps(void)
+void FreeGameState(void)
 {
+    MemFree(game.rocks); // asteroids
     for (unsigned int i = 0; i < ARRAY_SIZE(game.beeps); i++)
-        UnloadSound(game.beeps[i]);
+        UnloadSound(game.beeps[i]); // beeps
 }
 
 void ShootMissile(SpaceShip *ship)
@@ -139,9 +122,10 @@ void ShootMissile(SpaceShip *ship)
     if (ship->shotCount == MAX_SHOTS)
         ship->shotCount = 0;
 
-    Missile *shot = &ship->shots[ship->shotCount];
+    Missile *shot = &ship->missiles[ship->shotCount];
 
-    shot->exists = true;
+    shot->exploded = false;
+    shot->explosionTimer = EXPLOSION_TIME;
     shot->angle = ship->rotation + 180;
     Vector2 spawnPos = { 0, ship->length/2 + shot->radius*3 };
     spawnPos = Vector2Rotate(spawnPos, shot->angle*DEG2RAD);
@@ -150,6 +134,73 @@ void ShootMissile(SpaceShip *ship)
     shot->despawnTimer = 0.8f;
 
     ship->shotCount++;
+    PlaySound(game.beeps[BEEP_SHOOT]);
+}
+
+Asteroid *CreateAsteroid(SizeOfAsteroid size, Vector2 position, float angle)
+{
+    game.rockCount++;
+    game.rocks = MemRealloc(game.rocks, game.rockCount*sizeof(Asteroid));
+    Asteroid *rock = &game.rocks[game.rockCount - 1];
+    rock->exploded = false;
+
+    // radius
+    rock->size = size;
+    if (size == ASTEROID_SIZE_BIG)
+        rock->radius = ASTEROID_RADIUS_BIG;
+    else if (size == ASTEROID_SIZE_MEDIUM)
+        rock->radius = ASTEROID_RADIUS_MEDIUM;
+    else if (size == ASTEROID_SIZE_SMALL)
+        rock->radius = ASTEROID_RADIUS_SMALL;
+
+    // position & angle
+    rock->position = position;
+    rock->angle = angle;
+
+    // Speed proportional to size
+    float radiusRange = ASTEROID_RADIUS_BIG - ASTEROID_RADIUS_SMALL;
+    float scaledSpeed;
+    scaledSpeed = ASTEROID_SPEED*(ASTEROID_RADIUS_BIG - rock->radius)/radiusRange;
+    if (scaledSpeed < ASTEROID_SPEED/8) // minimum speed
+        scaledSpeed = ASTEROID_SPEED/8;
+
+    rock->speed = scaledSpeed;
+
+    return rock;
+}
+
+void CreateAsteroidRandom(SizeOfAsteroid size)
+{
+    float rockPosX = (float)GetRandomValue(0, VIRTUAL_WIDTH);
+    float rockPosY = (float)GetRandomValue(0, VIRTUAL_HEIGHT);
+    float angle = (float)GetRandomValue(0, 360);
+
+    Asteroid *rock = CreateAsteroid(size, (Vector2){ rockPosX, rockPosY }, angle);
+
+    float safeZoneRadius = game.ship.length*3;
+    rock->radius += safeZoneRadius;
+    if (CheckCollisionAsteroidShip(rock, &game.ship))
+    {
+        rock->position.x += ((GetRandomValue(0, 1)*2) - 1)*rock->radius*2;
+        rock->position.y += ((GetRandomValue(0, 1)*2) - 1)*rock->radius*2;
+    }
+    rock->radius -= safeZoneRadius;
+}
+
+void SplitAsteroid(Asteroid *rock)
+{
+    float angle = (float)GetRandomValue(0, 180);
+    Vector2 spawnPosA = { 0, rock->radius/2 };
+    spawnPosA = Vector2Rotate(spawnPosA, angle*DEG2RAD);
+    Vector2 spawnPosB = Vector2Invert(spawnPosA);
+    spawnPosA = Vector2Add(spawnPosA, rock->position);
+    spawnPosB = Vector2Add(spawnPosB, rock->position);
+
+    if (rock->size > ASTEROID_SIZE_SMALL)
+    {
+        CreateAsteroid(rock->size - 1, spawnPosA, angle);
+        CreateAsteroid(rock->size - 1, spawnPosB, angle+180);
+    }
 }
 
 bool IsShipOnEdge(SpaceShip *ship)
@@ -157,7 +208,7 @@ bool IsShipOnEdge(SpaceShip *ship)
     // Check each point
     for (unsigned int i = 0; i < 3; i++)
     {
-        Vector2 shipPoint = Vector2Rotate(game.shipTri[i], ship->rotation*DEG2RAD);
+        Vector2 shipPoint = Vector2Rotate(game.shipTriangle[i], ship->rotation*DEG2RAD);
         shipPoint = Vector2Add(shipPoint, ship->position);
         if ((shipPoint.x < 0) || (shipPoint.x > VIRTUAL_WIDTH) ||
             (shipPoint.y < 0) || (shipPoint.y > VIRTUAL_HEIGHT))
@@ -185,11 +236,9 @@ bool CheckCollisionAsteroidShip(Asteroid *rock, SpaceShip *ship)
     // Check each point
     for (unsigned int i = 0; i < 3; i++)
     {
-        Vector2 shipPoint = Vector2Rotate(game.shipTri[i], ship->rotation*DEG2RAD);
+        Vector2 shipPoint = Vector2Rotate(game.shipTriangle[i], ship->rotation*DEG2RAD);
         shipPoint = Vector2Add(shipPoint, ship->position);
-        float distanceFromAsteroid = Vector2Length(Vector2Subtract(shipPoint, rock->position));
-        bool isShipWithinAsteroid = distanceFromAsteroid < rock->radius;
-        if (isShipWithinAsteroid)
+        if (CheckCollisionPointCircle(shipPoint, rock->position, rock->radius))
             return true;
     }
 
@@ -209,6 +258,17 @@ void UpdateGameFrame(void)
         return; // back to main game loop: UpdateDrawFrame()
     }
 
+    // Detect win state and reset game
+    if (game.rockCount == game.eliminatedCount)
+    {
+        game.rockCount = 0;
+        game.eliminatedCount = 0;
+        for (unsigned int i = 0; i < ASTEROID_COUNT; i++)
+        {
+            CreateAsteroidRandom(ASTEROID_SIZE_BIG);
+        }
+    }
+
     // Input to pause
     if (IsInputActionPressed(INPUT_ACTION_PAUSE))
     {
@@ -223,34 +283,19 @@ void UpdateGameFrame(void)
     if (!game.isPaused)
     {
         // Update rocks
-        for (unsigned int i = 0; i < MAX_ASTEROIDS; i++)
+        for (unsigned int i = 0; i < game.rockCount; i++)
         {
             UpdateAsteroid(&game.rocks[i]);
-            if (CheckCollisionAsteroidShip(&game.rocks[i], &game.ship))
-            {
-                game.ship.exploded = true;
-            }
         }
 
         // Update bullets
         for (unsigned int i = 0; i < MAX_SHOTS; i++)
         {
-            UpdateMissile(&game.ship.shots[i]);
+            UpdateMissile(&game.ship.missiles[i]);
         }
 
         // Update ship
-        if (!game.ship.exploded)
-            UpdateShip(&game.ship);
-        else
-            game.ship.respawnTimer -= GetFrameTime();
-
-        if (game.ship.respawnTimer <= 0)
-        {
-            game.ship.exploded = false;
-            game.ship.position = (Vector2){ VIRTUAL_WIDTH/2, VIRTUAL_HEIGHT/2 };
-            game.ship.velocity = (Vector2){ 0, 0 };
-            game.ship.respawnTimer = SHIP_RESPAWN_TIME;
-        }
+        UpdateShip(&game.ship);
     }
 
     // Update user interface elements and logic
@@ -271,7 +316,21 @@ void WrapPastEdge(Vector2 *position)
 
 void UpdateShip(SpaceShip *ship)
 {
-    ship->isAtScreenEdge = IsShipOnEdge(ship);
+    if (ship->exploded)
+    {
+        game.ship.respawnTimer -= GetFrameTime();
+
+        if (game.ship.respawnTimer <= EPSILON)
+        {
+            game.ship.exploded = false;
+            game.ship.position = (Vector2){ VIRTUAL_WIDTH/2, VIRTUAL_HEIGHT/2 };
+            game.ship.velocity = (Vector2){ 0, 0 };
+            game.ship.respawnTimer = SHIP_RESPAWN_TIME;
+        }
+
+        // do not update, ship has exploded
+        return;
+    }
 
     // Player Input
     // Rotate (mouse)
@@ -318,54 +377,100 @@ void UpdateShip(SpaceShip *ship)
     // Update position
     Vector2 scaledVelocity = Vector2Scale(ship->velocity, GetFrameTime());
     ship->position = Vector2Add(ship->position, scaledVelocity);
+    ship->isAtScreenEdge = IsShipOnEdge(ship);
     WrapPastEdge(&ship->position);
+
+    // Check collision with asteroids
+    for (unsigned int i = 0; i < game.rockCount; i++)
+    {
+        Asteroid *rock = &game.rocks[i];
+        if (!rock->exploded && CheckCollisionAsteroidShip(rock, &game.ship))
+        {
+            game.ship.exploded = true;
+            rock->exploded = true;
+            SplitAsteroid(rock);
+            game.eliminatedCount++;
+            PlaySound(game.beeps[BEEP_EXPLODE]);
+        }
+    }
 }
 
 void UpdateAsteroid(Asteroid *rock)
 {
-    rock->isAtScreenEdge = IsCircleOnEdge(rock->position, rock->radius);
+    if (rock->exploded) return;
 
+    // Update position
     Vector2 currentVelocity = (Vector2){ 0, rock->speed*GetFrameTime() };
     currentVelocity = Vector2Rotate(currentVelocity, rock->angle*DEG2RAD);
     rock->position = Vector2Add(rock->position, currentVelocity);
+    rock->isAtScreenEdge = IsCircleOnEdge(rock->position, rock->radius);
     WrapPastEdge(&rock->position);
+
+    // Check collision with missiles
+    for (unsigned int i = 0; i < game.ship.shotCount; i++)
+    {
+        Missile *shot = &game.ship.missiles[i];
+        if (!shot->exploded && CheckCollisionCircles(rock->position, rock->radius,
+                                 shot->position, shot->radius))
+        {
+            rock->exploded = true;
+            shot->exploded = true;
+            SplitAsteroid(rock);
+            game.eliminatedCount++;
+            PlaySound(game.beeps[BEEP_EXPLODE]);
+        }
+    }
 }
 
 void UpdateMissile(Missile *shot)
 {
-    shot->isAtScreenEdge = IsCircleOnEdge(shot->position, shot->radius);
+    if (shot->exploded)
+    {
+        shot->explosionTimer -= GetFrameTime();
+        return;
+    }
 
     // Update position
     Vector2 currentVelocity = (Vector2){ 0, shot->speed*GetFrameTime() };
     currentVelocity = Vector2Rotate(currentVelocity, shot->angle*DEG2RAD);
     shot->position = Vector2Add(shot->position, currentVelocity);
+    shot->isAtScreenEdge = IsCircleOnEdge(shot->position, shot->radius);
     WrapPastEdge(&shot->position);
 
     // Update despawn timer
     shot->despawnTimer -= GetFrameTime();
     if (shot->despawnTimer <= 0)
-        shot->exists = false;
+    {
+        shot->exploded = true;
+        shot->explosionTimer = 0.0f;
+    }
 }
 
 void DrawGameFrame(void)
 {
     // Draw rocks
-    for (unsigned int i = 0; i < MAX_ASTEROIDS; i++)
+    for (unsigned int i = 0; i < game.rockCount; i++)
     {
-        DrawAsteroid(&game.rocks[i]);
+        Asteroid *rock = &game.rocks[i];
+        if (!rock->exploded)
+            DrawAsteroid(rock);
     }
 
     // Draw missiles
     for (unsigned int i = 0; i < MAX_SHOTS; i++)
     {
-        DrawMissile(&game.ship.shots[i]);
+        Missile *shot = &game.ship.missiles[i];
+        if (!shot->exploded)
+            DrawMissile(shot);
+        else if (shot->explosionTimer > EPSILON)
+            DrawCircleV(shot->position, shot->radius*5, Fade(RED, 0.5f));
     }
 
     // Draw ship
     if (!game.ship.exploded)
         DrawShip(&game.ship);
-    else if ((SHIP_RESPAWN_TIME - game.ship.respawnTimer) < 0.5)
-        DrawCircleV(game.ship.position, game.ship.length, RED);
+    else if ((SHIP_RESPAWN_TIME - game.ship.respawnTimer) < EXPLOSION_TIME)
+        DrawCircleV(game.ship.position, game.ship.length, Fade(RED, 0.5f));
 
     // Draw user interface elements
     DrawUiFrame();
@@ -374,15 +479,11 @@ void DrawGameFrame(void)
 void DrawShip(SpaceShip *ship)
 {
     // Transform ship triangle
-    Vector2 shipPoints[3] = {
-        game.shipTri[1],
-        game.shipTri[2],
-        game.shipTri[3],
-    };
+    Vector2 shipPoints[3];
     for (unsigned int i = 0; i < 3; i++)
     {
-        // shipPoints[i] = game.shipTri[i];
-        shipPoints[i] = Vector2Rotate(game.shipTri[i], ship->rotation*DEG2RAD);
+        shipPoints[i] = game.shipTriangle[i];
+        shipPoints[i] = Vector2Rotate(game.shipTriangle[i], ship->rotation*DEG2RAD);
         shipPoints[i] = Vector2Add(shipPoints[i], ship->position);
     }
     DrawTriangle(shipPoints[0], shipPoints[1], shipPoints[2], RAYWHITE);
@@ -404,9 +505,9 @@ void DrawShip(SpaceShip *ship)
         for (unsigned int i = 0; i < 8; i++)
         {
             Vector2 cloneShip[3];
-            cloneShip[0] = Vector2Add(game.shipTri[0], offsets[i]);
-            cloneShip[1] = Vector2Add(game.shipTri[1], offsets[i]);
-            cloneShip[2] = Vector2Add(game.shipTri[2], offsets[i]);
+            cloneShip[0] = Vector2Add(shipPoints[0], offsets[i]);
+            cloneShip[1] = Vector2Add(shipPoints[1], offsets[i]);
+            cloneShip[2] = Vector2Add(shipPoints[2], offsets[i]);
 
             DrawTriangle(cloneShip[0], cloneShip[1], cloneShip[2], RAYWHITE);
         }
@@ -440,7 +541,7 @@ void DrawAsteroid(Asteroid *rock)
 
 void DrawMissile(Missile *shot)
 {
-    if (!shot->exists) return;
+    if (shot->exploded) return;
 
     DrawCircleV((Vector2){ shot->position.x, shot->position.y }, shot->radius, RAYWHITE);
     Vector2 offsets[8] = {

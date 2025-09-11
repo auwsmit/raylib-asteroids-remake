@@ -80,7 +80,7 @@ UiButton InitUiTitle(char *text, UiButton *button);
 UiButton InitUiButton(char *text, int fontSize, float textPosX, float textPosY);
 UiButton *InitUiMenuButton(char *text, int fontSize, float textPosX, float textPosY, UiMenu *menu);
 UiButton *InitUiMenuButtonRelative(char* text, int fontSize, UiButton *originButton, float offsetY, UiMenu *menu);
-void FreeUiMenuButtons(void);
+void FreeUiState(void);
 
 // Update / User Input
 void UpdateUiFrame(void); // Updates the menu for the current frame

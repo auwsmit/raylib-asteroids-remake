@@ -58,8 +58,8 @@ int main(void)
 
     // De-Initialization
     // ----------------------------------------------------------------------------
-    FreeBeeps();
-    FreeUiMenuButtons();
+    FreeGameState();
+    FreeUiState();
     CloseAudioDevice();
     CloseWindow(); // Close window and OpenGL context
 
