@@ -70,7 +70,7 @@ void CreateNewWindow(void)
 {
     unsigned int windowFlags = FLAG_MSAA_4X_HINT;
 #if !defined(PLATFORM_WEB) // no resize or vsync for web, emscripten handles that
-    windowFlags = FLAG_WINDOW_RESIZABLE;
+    windowFlags |= FLAG_WINDOW_RESIZABLE;
     if (VSYNC_ENABLED) windowFlags |= FLAG_VSYNC_HINT;
 #endif
     SetConfigFlags(windowFlags);
