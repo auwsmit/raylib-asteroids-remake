@@ -161,7 +161,7 @@ void ShootMissile(SpaceShip *ship)
 Color ColorBrightnessVariation(Color color)
 {
     float brightness = -0.25f*GetRandomValue(0, 2); // 3 main shades
-    brightness *= 0.01f*GetRandomValue(1, 100); // 10 sub-shades
+    brightness += 0.01f*GetRandomValue(1, 10); // sub-shades
     color = ColorBrightness(color, brightness);
     return color;
 }
@@ -229,8 +229,10 @@ void SplitAsteroid(Asteroid *rock)
 
     if (rock->size > ASTEROID_SIZE_SMALL)
     {
-        CreateAsteroid(rock->size - 1, spawnPosA, angle, rock->color);
-        CreateAsteroid(rock->size - 1, spawnPosB, angle + 180, rock->color);
+        SizeOfAsteroid splitSize = rock->size - 1;
+        Color splitColor = rock->color;
+        CreateAsteroid(splitSize, spawnPosA, angle, splitColor);
+        CreateAsteroid(splitSize, spawnPosB, angle + 180, splitColor);
     }
 }
 
@@ -369,6 +371,7 @@ void UpdateShip(SpaceShip *ship)
             game.ship.position = (Vector2){ VIRTUAL_WIDTH/2, VIRTUAL_HEIGHT/2 };
             game.ship.velocity = (Vector2){ 0, 0 };
             game.ship.respawnTimer = SHIP_RESPAWN_TIME;
+            UpdateShip(ship);
         }
 
         // do not update, ship has exploded
@@ -556,7 +559,7 @@ void DrawShip(SpaceShip *ship)
     // Get and transform ship triangle + jet triangle
     DrawTriangle(ship->shipPoints[0], ship->shipPoints[1], ship->shipPoints[2], GRAY);
     if (IsInputActionDown(INPUT_ACTION_FORWARD))
-        DrawTriangle(ship->jetPoints[0], ship->jetPoints[1], ship->jetPoints[2], ORANGE);
+        DrawTriangle(ship->jetPoints[0], ship->jetPoints[1], ship->jetPoints[2], Fade(ORANGE, 0.5f));
 
     // Clones at opposite side of screen
     if (ship->isAtScreenEdge)
@@ -574,7 +577,7 @@ void DrawShip(SpaceShip *ship)
 
             DrawTriangle(cloneShip[0], cloneShip[1], cloneShip[2], GRAY);
             if (IsInputActionDown(INPUT_ACTION_FORWARD))
-                DrawTriangle(cloneJet[0], cloneJet[1], cloneJet[2], ORANGE);
+                DrawTriangle(cloneJet[0], cloneJet[1], cloneJet[2], Fade(ORANGE, 0.5f));
         }
     }
 }
