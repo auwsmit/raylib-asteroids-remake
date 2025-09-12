@@ -14,20 +14,21 @@
 #define SHIP_TURN_SPEED 190.0f // turn X degrees per second
 #define SHIP_THRUST_SPEED 400.0f
 #define SHIP_MAX_SPEED 1000.0f
-#define SPACE_FRICTION 2.0f
 #define SHIP_RESPAWN_TIME 2.0f
+#define SPACE_FRICTION 2.0f // how quickly the player slows to 0
 
-#define MAX_SHOTS 4
-#define SHOT_RADIUS 5.0f
-#define SHOT_SPEED 1100.0f
+#define MISSILE_MAX 10
+#define MISSILE_RADIUS 5.0f
+#define MISSILE_SPEED 1100.0f
 
-#define ASTEROID_COUNT 3
+#define ASTEROID_COUNT 4
 #define ASTEROID_RADIUS_BIG 80
 #define ASTEROID_RADIUS_MEDIUM 40
 #define ASTEROID_RADIUS_SMALL 20
 #define ASTEROID_SPEED 300.0f
 
 #define EXPLOSION_TIME 0.4f
+#define STAR_AMOUNT 800
 
 // Types and Structures
 // ----------------------------------------------------------------------------
@@ -45,12 +46,13 @@ typedef enum GameBeep {
 } GameBeep;
 
 typedef enum SizeOfAsteroid {
-    ASTEROID_SIZE_SMALL = 1,
-    ASTEROID_SIZE_MEDIUM = 2,
-    ASTEROID_SIZE_BIG = 3,
+    ASTEROID_SIZE_SMALL,
+    ASTEROID_SIZE_MEDIUM,
+    ASTEROID_SIZE_BIG,
 } SizeOfAsteroid;
 
 typedef struct Asteroid {
+    Color color;
     Vector2 position;
     Vector2 velocity;
     float angle;
@@ -74,8 +76,10 @@ typedef struct Missile {
 } Missile;
 
 typedef struct SpaceShip {
-    Missile missiles[MAX_SHOTS];
+    Missile missiles[MISSILE_MAX];
     Vector2 position;
+    Vector2 shipPoints[3];
+    Vector2 jetPoints[3];
     Vector2 velocity;
     float rotation; // in degrees, 0 is pointing up, 90 is right
     float width;
@@ -92,7 +96,10 @@ typedef struct GameState {
     SpaceShip ship;
     Asteroid *rocks;
     GameMode currentMode;
+    Vector2 stars[STAR_AMOUNT];
     Vector2 shipTriangle[3];
+    Vector2 jetTriangle[3];
+    Vector2 wrapOffsets[8];
     ScreenState currentScreen;
     unsigned int rockCount;
     unsigned int eliminatedCount;
@@ -115,7 +122,8 @@ void FreeGameState(void); // Free any allocated memory within game state
 
 // Create/Destroy Entities
 void ShootMissile(SpaceShip *ship);
-Asteroid *CreateAsteroid(SizeOfAsteroid size, Vector2 position, float angle);
+Color ColorBrightnessVariation(Color color);
+Asteroid *CreateAsteroid(SizeOfAsteroid size, Vector2 position, float angle, Color color);
 void CreateAsteroidRandom(SizeOfAsteroid size);
 void SplitAsteroid(Asteroid *rock);
 

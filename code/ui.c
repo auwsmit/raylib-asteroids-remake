@@ -326,6 +326,11 @@ void DrawUiFrame(void)
 {
     if (game.currentScreen == SCREEN_TITLE)
     {
+        // Draw stars
+        for (unsigned int i = 0; i < STAR_AMOUNT; i++)
+            DrawCircleV(game.stars[i], 1.0f, WHITE);
+
+        // Draw title menu
         for (unsigned int i = 0; i < ARRAY_SIZE(ui.title); i++)
             DrawUiElement(&ui.title[i]);
     }
