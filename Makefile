@@ -22,7 +22,7 @@
 
 ifeq ($(PLATFORM),WEB)
     EXTENSION := .html
-    OBJ_EXT   := .obj
+    OBJ_EXT   := .o
 else ifeq ($(OS),Windows_NT)
     PLATFORM  := WINDOWS
     EXTENSION := .exe
@@ -217,7 +217,7 @@ run:
 
 # Clean up generated build files
 clean:
-	@rm -rf $(OUTPUT)$(EXTENSION) $(OBJS) \
+	@rm -rf $(OUTPUT)$(EXTENSION) $(SRC:.c=.o) $(SRC:.c=.obj) \
 	        $(OUTPUT).html $(OUTPUT).js $(OUTPUT).wasm build_web/ \
 	        $(OUTPUT).ilk $(OUTPUT).pdb vc140.pdb *.rdi
 	@echo "Make build files cleaned"
