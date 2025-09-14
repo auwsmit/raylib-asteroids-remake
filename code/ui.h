@@ -9,22 +9,18 @@
 // Macros
 // ----------------------------------------------------------------------------
 
-// Size of menu elements
-#define UI_TITLE_SIZE  150      // title font size
-#define UI_TITLE_BUTTON_SIZE 80 // title menu button font size
-#define UI_PAUSE_SIZE 50        // pause menu font size
-#define UI_CURSOR_SIZE 20.0f    // cursor triangle size
+// Size of UI elements
+#define UI_TITLE_SIZE        150   // title font size
+#define UI_TITLE_BUTTON_SIZE 80    // title menu button font size
+#define UI_CURSOR_SIZE       20.0f // cursor triangle size
+#define UI_FONT_SIZE_CENTER  180   // text at center of screen font size
+#define UI_FONT_SIZE_EDGE    50    // text at top of screen font size
 
 // UI spacing
-#define UI_TITLE_SPACE_FROM_TOP 180 // space from the top of the screen
-#define UI_SPACE_FROM_TITLE     200 // space between the first option and title text
-#define UI_BUTTON_SPACING       50  // spacing between each button
-
-// UI element size
-#define FIELD_LINE_WIDTH  15    // Width of the field lines (top, bottom, dotted center-line)
-#define SCORE_FONT_SIZE 180     // Also used for pause font size
-#define DIFFICULTY_FONT_SIZE 50 // For text that shows difficulty at bottom of screen
-#define WIN_FONT_SIZE 100
+#define UI_TITLE_TOP_PADDING 180 // space from the top of the screen
+#define UI_TITLE_SPACING     200 // space between the first option and title text
+#define UI_BUTTON_SPACING    50  // space between each button
+#define UI_EDGE_PADDING      50  // padding between UI and edge of screen
 
 // Types and Structures
 // ----------------------------------------------------------------------------
@@ -76,7 +72,7 @@ extern UiState ui; // global declaration
 
 // Initialize
 void InitUiState(void); // Initializes the title screen and allocates memory for menu buttons
-UiButton InitUiTitle(char *text, UiButton *button);
+UiButton InitUiTitle(char *text);
 UiButton InitUiButton(char *text, int fontSize, float textPosX, float textPosY);
 UiButton *InitUiMenuButton(char *text, int fontSize, float textPosX, float textPosY, UiMenu *menu);
 UiButton *InitUiMenuButtonRelative(char* text, int fontSize, UiButton *originButton, float offsetY, UiMenu *menu);
@@ -94,6 +90,6 @@ void ChangeUiMenu(UiMenuState newMenu); // Change from one menu to another
 void DrawUiFrame(void); // Draws the menu for the current frame
 void DrawUiElement(UiButton *button);
 void DrawUiCursor(UiButton *selected); // Draw the cursor at the given button
-void DrawUiScores(void);
+void DrawLives(void);
 
 #endif // ASTEROIDS_MENU_HEADER_GUARD

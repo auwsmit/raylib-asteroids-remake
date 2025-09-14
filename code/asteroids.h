@@ -9,26 +9,28 @@
 // Macros
 // ----------------------------------------------------------------------------
 
+#define STARTING_LIVES 3
+#define STAR_AMOUNT 800
+#define EXPLOSION_TIME 0.4f
+
 #define SHIP_WIDTH 40.0f
 #define SHIP_LENGTH 60.0f
 #define SHIP_TURN_SPEED 190.0f // turn X degrees per second
 #define SHIP_THRUST_SPEED 400.0f
 #define SHIP_MAX_SPEED 1000.0f
 #define SHIP_RESPAWN_TIME 2.0f
+#define SHIP_SAFE_TIME 3.0f
 #define SPACE_FRICTION 2.0f // how quickly the player slows to 0
 
 #define MISSILE_MAX 10
 #define MISSILE_RADIUS 5.0f
 #define MISSILE_SPEED 1100.0f
 
-#define ASTEROID_COUNT 4
+#define ASTEROID_AMOUNT_LVL1 2
 #define ASTEROID_RADIUS_BIG 80
 #define ASTEROID_RADIUS_MEDIUM 40
 #define ASTEROID_RADIUS_SMALL 20
 #define ASTEROID_SPEED 300.0f
-
-#define EXPLOSION_TIME 0.4f
-#define STAR_AMOUNT 800
 
 // Types and Structures
 // ----------------------------------------------------------------------------
@@ -85,6 +87,7 @@ typedef struct SpaceShip {
     float width;
     float length;
     float respawnTimer;
+    float safeTimer;
     unsigned int shotCount;
     bool isAtScreenEdge;
     bool exploded;
@@ -95,17 +98,19 @@ typedef struct GameState {
     Camera2D camera;
     SpaceShip ship;
     Asteroid *rocks;
-    GameMode currentMode;
+    // GameMode currentMode;
     Vector2 stars[STAR_AMOUNT];
     Vector2 shipTriangle[3];
     Vector2 jetTriangle[3];
     Vector2 wrapOffsets[8];
     ScreenState currentScreen;
+    unsigned int level;
+    unsigned int lives;
+    unsigned int rockCountStartOfLevel;
     unsigned int rockCount;
     unsigned int eliminatedCount;
     // unsigned int scoreL;
     // unsigned int scoreR;
-    // unsigned int lives;
     bool isPaused;
     bool gameShouldExit;
 } GameState;

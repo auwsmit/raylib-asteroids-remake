@@ -167,7 +167,7 @@ void UpdateDrawFrame(void)
         EndScissorMode();
 
     // Debug:
-    DrawFPS(0, 0);
+    // DrawFPS(0, 0);
 
     EndDrawing();
 }

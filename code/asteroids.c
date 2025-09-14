@@ -46,17 +46,19 @@ void InitGameState(void)
         },
 
         .wrapOffsets = {
-            { VIRTUAL_WIDTH, 0 },   // right
+            {  VIRTUAL_WIDTH, 0 },  // right
             { -VIRTUAL_WIDTH, 0 },  // left
             { 0, -VIRTUAL_HEIGHT }, // up
-            { 0, VIRTUAL_HEIGHT },  // down
-            { VIRTUAL_WIDTH, -VIRTUAL_HEIGHT },  // top-right
+            { 0,  VIRTUAL_HEIGHT }, // down
+            {  VIRTUAL_WIDTH, -VIRTUAL_HEIGHT }, // top-right
             { -VIRTUAL_WIDTH, -VIRTUAL_HEIGHT }, // top-left
-            { VIRTUAL_WIDTH, VIRTUAL_HEIGHT },   // bottom-right
-            { -VIRTUAL_WIDTH, VIRTUAL_HEIGHT }   // bottom-left
+            {  VIRTUAL_WIDTH,  VIRTUAL_HEIGHT }, // bottom-right
+            { -VIRTUAL_WIDTH,  VIRTUAL_HEIGHT }  // bottom-left
         },
 
-        // .lives = 3,
+        .level = 1,
+        .lives = STARTING_LIVES,
+        .rockCountStartOfLevel = ASTEROID_AMOUNT_LVL1,
     };
 
     // Generate random stars
@@ -76,10 +78,8 @@ void InitGameState(void)
     }
 
     // Create asteroids
-    for (unsigned int i = 0; i < ASTEROID_COUNT; i++)
-    {
+    for (unsigned int i = 0; i < game.rockCountStartOfLevel; i++)
         CreateAsteroidRandom(ASTEROID_SIZE_BIG);
-    }
 
     // Allocate memory for beep sine waves
     game.beeps[BEEP_MENU] = GenBeep(300.0f, 0.03f);
@@ -126,6 +126,8 @@ Sound GenBeep(float freq, float lengthSec)
     };
 
     Sound beep = LoadSoundFromWave(beepSoundWave);
+    SetSoundVolume(beep, 0.3f);
+
     UnloadWave(beepSoundWave); // frees data
     return beep;
 }
@@ -304,17 +306,35 @@ void UpdateGameFrame(void)
         return; // back to main game loop: UpdateDrawFrame()
     }
 
-    // Detect win state and reset asteroids
+    // Detect win state and go to next level
     if (game.rockCount == game.eliminatedCount)
     {
+        game.level++;
         game.rockCount = 0;
         game.eliminatedCount = 0;
-        for (unsigned int i = 0; i < ASTEROID_COUNT; i++)
-        {
+        game.rockCountStartOfLevel += game.level * 2;
+        for (unsigned int i = 0; i < game.rockCountStartOfLevel; i++)
             CreateAsteroidRandom(ASTEROID_SIZE_BIG);
+    }
+
+    // Game Over
+    if (game.lives == 0)
+    {
+        if (IsInputActionPressed(INPUT_ACTION_CONFIRM))
+        {
+            PollInputEvents(); // Skip input this frame
+            game.ship.respawnTimer = 0;
+            game.lives = STARTING_LIVES;
+            game.level = 1;
+            game.rockCountStartOfLevel = ASTEROID_AMOUNT_LVL1;
+            game.rockCount = 0;
+            game.eliminatedCount = 0;
+            for (unsigned int i = 0; i < game.rockCountStartOfLevel; i++)
+                CreateAsteroidRandom(ASTEROID_SIZE_BIG);
         }
     }
 
+    // Pause
     if (IsInputActionPressed(INPUT_ACTION_PAUSE))
     {
         game.isPaused = !game.isPaused;
@@ -329,15 +349,11 @@ void UpdateGameFrame(void)
     {
         // Update rocks
         for (unsigned int i = 0; i < game.rockCount; i++)
-        {
             UpdateAsteroid(&game.rocks[i]);
-        }
 
         // Update bullets
         for (unsigned int i = 0; i < MISSILE_MAX; i++)
-        {
             UpdateMissile(&game.ship.missiles[i]);
-        }
 
         // Update ship
         UpdateShip(&game.ship);
@@ -361,22 +377,28 @@ void WrapPastEdge(Vector2 *position)
 
 void UpdateShip(SpaceShip *ship)
 {
+    float frameTime = GetFrameTime();
+
     if (ship->exploded)
     {
-        game.ship.respawnTimer -= GetFrameTime();
+        game.ship.respawnTimer -= frameTime;
 
-        if (game.ship.respawnTimer <= EPSILON)
+        if ((game.ship.respawnTimer <= EPSILON) && (game.lives > 0))
         {
             game.ship.exploded = false;
             game.ship.position = (Vector2){ VIRTUAL_WIDTH/2, VIRTUAL_HEIGHT/2 };
             game.ship.velocity = (Vector2){ 0, 0 };
             game.ship.respawnTimer = SHIP_RESPAWN_TIME;
+            if (game.lives != STARTING_LIVES)
+                game.ship.safeTimer = SHIP_SAFE_TIME;
             UpdateShip(ship);
         }
 
         // do not update, ship has exploded
         return;
     }
+    if (ship->safeTimer > 0)
+        ship->safeTimer -= frameTime;
 
     // Player Input
     // Rotate (mouse)
@@ -392,35 +414,29 @@ void UpdateShip(SpaceShip *ship)
     }
     // Rotate (keys)
     if (IsInputActionDown(INPUT_ACTION_LEFT))
-    {
-        ship->rotation -= SHIP_TURN_SPEED*GetFrameTime();
-    }
+        ship->rotation -= SHIP_TURN_SPEED*frameTime;
     if (IsInputActionDown(INPUT_ACTION_RIGHT))
-    {
-        ship->rotation += SHIP_TURN_SPEED*GetFrameTime();
-    }
+        ship->rotation += SHIP_TURN_SPEED*frameTime;
 
     // Calculate thrust amount
     if (IsInputActionDown(INPUT_ACTION_FORWARD))
     {
         Vector2 thrust = (Vector2){ 0, -SHIP_THRUST_SPEED };
         thrust = Vector2Rotate(thrust, ship->rotation*DEG2RAD);
-        thrust = Vector2Scale(thrust, GetFrameTime());
+        thrust = Vector2Scale(thrust, frameTime);
         ship->velocity = Vector2Add(ship->velocity, thrust);
         ship->velocity = Vector2ClampValue(ship->velocity, 0, SHIP_MAX_SPEED);
     }
 
     if (IsInputActionPressed(INPUT_ACTION_SHOOT))
-    {
         ShootMissile(ship);
-    }
 
     // Apply friction (smooth exponential decay)
-    float slowdown = expf(-SPACE_FRICTION/10*GetFrameTime());
+    float slowdown = expf(-SPACE_FRICTION/10*frameTime);
     ship->velocity = Vector2Scale(ship->velocity, slowdown);
 
     // Update position
-    Vector2 scaledVelocity = Vector2Scale(ship->velocity, GetFrameTime());
+    Vector2 scaledVelocity = Vector2Scale(ship->velocity, frameTime);
     ship->position = Vector2Add(ship->position, scaledVelocity);
 
     // Calculate new triangle points for collision & screen wrap
@@ -437,6 +453,7 @@ void UpdateShip(SpaceShip *ship)
 
 
     // Check collision with asteroids
+    if (ship->safeTimer > 0) return;
     for (unsigned int i = 0; i < game.rockCount; i++)
     {
         Asteroid *rock = &game.rocks[i];
@@ -449,6 +466,8 @@ void UpdateShip(SpaceShip *ship)
             PlaySound(game.beeps[BEEP_EXPLODE]);
         }
     }
+    if (game.ship.exploded)
+        game.lives--;
 }
 
 void UpdateAsteroid(Asteroid *rock)
@@ -556,8 +575,13 @@ void DrawGameFrame(void)
 
 void DrawShip(SpaceShip *ship)
 {
+    // Transparent ship during respawn invincibility
+    Color shipColor = GRAY;
+    if (ship->safeTimer > 0)
+        shipColor = Fade(shipColor, 0.5);
+
     // Get and transform ship triangle + jet triangle
-    DrawTriangle(ship->shipPoints[0], ship->shipPoints[1], ship->shipPoints[2], GRAY);
+    DrawTriangle(ship->shipPoints[0], ship->shipPoints[1], ship->shipPoints[2], shipColor);
     if (IsInputActionDown(INPUT_ACTION_FORWARD))
         DrawTriangle(ship->jetPoints[0], ship->jetPoints[1], ship->jetPoints[2], Fade(ORANGE, 0.5f));
 
@@ -575,7 +599,7 @@ void DrawShip(SpaceShip *ship)
             cloneJet[1] = Vector2Add(ship->jetPoints[1], game.wrapOffsets[i]);
             cloneJet[2] = Vector2Add(ship->jetPoints[2], game.wrapOffsets[i]);
 
-            DrawTriangle(cloneShip[0], cloneShip[1], cloneShip[2], GRAY);
+            DrawTriangle(cloneShip[0], cloneShip[1], cloneShip[2], shipColor);
             if (IsInputActionDown(INPUT_ACTION_FORWARD))
                 DrawTriangle(cloneJet[0], cloneJet[1], cloneJet[2], Fade(ORANGE, 0.5f));
         }

@@ -24,12 +24,12 @@ void InitUiState(void)
     // Title menu buttons
     UiMenu *titleMenu = &uiDefaults.menus[UI_MENU_TITLE];
 
-    uiDefaults.title[0] = InitUiTitle("Asteroids", 0);
-    uiDefaults.title[1] = InitUiTitle("Remake", &uiDefaults.title[0]);
+    uiDefaults.title[0] = InitUiTitle("Asteroids");
+    uiDefaults.title[1] = InitUiTitle("Remake");
 #if !defined(PLATFORM_WEB)
     UiButton *start =
 #endif
-        InitUiMenuButtonRelative("Start", UI_TITLE_BUTTON_SIZE, &uiDefaults.title[1], UI_SPACE_FROM_TITLE, titleMenu);
+        InitUiMenuButtonRelative("Start", UI_TITLE_BUTTON_SIZE, &uiDefaults.title[1], UI_TITLE_SPACING, titleMenu);
 #if !defined(PLATFORM_WEB)
     InitUiMenuButtonRelative("Exit", UI_TITLE_BUTTON_SIZE, start, UI_BUTTON_SPACING, titleMenu);
 #endif
@@ -39,32 +39,37 @@ void InitUiState(void)
     char *pauseText = "Pause";
     char *resumeText = "Resume";
     char *toTitleText = "Back to Title";
-    const int pauseTextLength = MeasureText(pauseText, UI_PAUSE_SIZE);
+    const int pauseTextLength = MeasureText(pauseText, UI_FONT_SIZE_EDGE);
     uiDefaults.pause =
-        InitUiButton(pauseText, UI_PAUSE_SIZE,
+        InitUiButton(pauseText, UI_FONT_SIZE_EDGE,
                      (float)VIRTUAL_WIDTH/4 - pauseTextLength/2,
-                     (float)VIRTUAL_HEIGHT - (UI_PAUSE_SIZE*2));
+                     (float)VIRTUAL_HEIGHT - UI_FONT_SIZE_EDGE - UI_EDGE_PADDING);
 
-    InitUiMenuButtonRelative(resumeText, UI_PAUSE_SIZE, &uiDefaults.pause, -UI_PAUSE_SIZE, pauseMenu);
-    InitUiMenuButtonRelative(toTitleText, UI_PAUSE_SIZE, &uiDefaults.pause, -UI_PAUSE_SIZE*2 - UI_BUTTON_SPACING, pauseMenu);
+    InitUiMenuButtonRelative(resumeText, UI_FONT_SIZE_EDGE, &uiDefaults.pause, -UI_FONT_SIZE_EDGE, pauseMenu);
+    InitUiMenuButtonRelative(toTitleText, UI_FONT_SIZE_EDGE, &uiDefaults.pause, -UI_FONT_SIZE_EDGE*2 - UI_BUTTON_SPACING, pauseMenu);
 
     ui = uiDefaults;
 }
 
-UiButton InitUiTitle(char *text, UiButton *button)
+UiButton InitUiTitle(char *text)
 {
+    static UiButton *previousTitleLine = 0;
+
     int fontSize = UI_TITLE_SIZE;
     int textWidth = MeasureText(text, fontSize);
     float titlePosX = (VIRTUAL_WIDTH - (float)textWidth)/2;
 #if !defined(PLATFORM_WEB) // different spacing for web
-        float titlePosY = UI_TITLE_SPACE_FROM_TOP;
+        float titlePosY = UI_TITLE_TOP_PADDING;
 #else
-        float titlePosY = UI_TITLE_SPACE_FROM_TOP + UI_TITLE_BUTTON_SIZE;
+        float titlePosY = UI_TITLE_TOP_PADDING + UI_TITLE_BUTTON_SIZE;
 #endif
-    if (button != 0)
+    if (previousTitleLine != 0)
         titlePosY += UI_TITLE_SIZE + 10;
 
-    return InitUiButton(text, fontSize, titlePosX, titlePosY);
+    UiButton title = InitUiButton(text, fontSize, titlePosX, titlePosY);
+    previousTitleLine = &title;
+
+    return title;
 }
 
 UiButton InitUiButton(char *text, int fontSize, float textPosX, float textPosY)
@@ -354,35 +359,54 @@ void DrawUiFrame(void)
 
     if (game.currentScreen == SCREEN_GAMEPLAY)
     {
-        // Draw score
         // DrawUiScores();
+
+        DrawLives();
+
+        // Draw level indicator
+        const char *levelText = TextFormat("Level: %i", game.level);
+        unsigned int textLength = MeasureText(levelText, UI_FONT_SIZE_EDGE);
+        DrawText(levelText,
+                 VIRTUAL_WIDTH - textLength - UI_EDGE_PADDING, UI_EDGE_PADDING,
+                 UI_FONT_SIZE_EDGE, RAYWHITE);
+
 
         // Fade animation
         Color fadeColor = Fade(RAYWHITE, ui.textFade);
 
         // Draw pause message
-        char *text;
         if (game.isPaused)
         {
-            text = "PAUSED";
-            int textOffset = MeasureText(text, SCORE_FONT_SIZE)/2;
+            char *text = "PAUSED";
+            int textOffset = MeasureText(text, UI_FONT_SIZE_CENTER)/2;
             DrawText(text, VIRTUAL_WIDTH/2 - textOffset,
-                     VIRTUAL_HEIGHT/2 - SCORE_FONT_SIZE/2,
-                     SCORE_FONT_SIZE, fadeColor);
+                     VIRTUAL_HEIGHT/2 - UI_FONT_SIZE_CENTER/2,
+                     UI_FONT_SIZE_CENTER, fadeColor);
         }
-        else if (game.currentMode == MODE_DEMO) // Draw demo mode message
+        else if (game.lives <= 0)
         {
-            text = "DEMO MODE";
-            int textOffset = MeasureText(text, SCORE_FONT_SIZE)/2;
+            char *text = "GAME OVER";
+            int textOffset = MeasureText(text, UI_FONT_SIZE_CENTER)/2;
             DrawText(text, VIRTUAL_WIDTH/2 - textOffset,
-                     VIRTUAL_HEIGHT/2 - SCORE_FONT_SIZE/2,
-                     SCORE_FONT_SIZE, fadeColor);
+                     VIRTUAL_HEIGHT/2 - UI_FONT_SIZE_CENTER/2,
+                     UI_FONT_SIZE_CENTER, RAYWHITE);
         }
+        // else if (game.currentMode == MODE_DEMO) // Draw demo mode message
+        // {
+        //     text = "DEMO MODE";
+        //     int textOffset = MeasureText(text, UI_FONT_SIZE_CENTER)/2;
+        //     DrawText(text, VIRTUAL_WIDTH/2 - textOffset,
+        //              VIRTUAL_HEIGHT/2 - UI_FONT_SIZE_CENTER/2,
+        //              UI_FONT_SIZE_CENTER, fadeColor);
+        // }
 
     }
 
     // Debug:
     // DrawText(TextFormat("cursor selected: %i", menu->selectedId), 0, 40, 40, WHITE);
+    // DrawText(TextFormat("%2i rock total", game.rockCount), 0, 25, 20, RAYWHITE);
+    // DrawText(TextFormat("%2i eliminated", game.eliminatedCount), 0, 50, 20, RAYWHITE);
+    // DrawText(TextFormat("%2i remaining", game.rockCount - game.eliminatedCount), 0, 75, 20, RAYWHITE);
 }
 
 void DrawUiElement(UiButton *button)
@@ -405,20 +429,28 @@ void DrawUiCursor(UiButton *selectedButton)
                  RAYWHITE);
 }
 
-// void DrawUiScores(void)
-// {
-//     int fontSize = 180;
+void DrawLives(void)
+{
+    float scale = 0.75f;
+    float spacing = game.ship.width/6;
+    Vector2 lifeTriangle[3] = {
+        Vector2Scale(game.shipTriangle[0], scale),
+        Vector2Scale(game.shipTriangle[1], scale),
+        Vector2Scale(game.shipTriangle[2], scale),
+    };
 
-//     const char *scoreLMsg = TextFormat("%i", game.scoreL);
-//     int scoreLWidth = MeasureText(scoreLMsg, fontSize);
-//     int scoreLPosX = VIRTUAL_WIDTH/4 - scoreLWidth/2;
+    for (unsigned int i = 0; i < 3; i++)
+    {
+        lifeTriangle[i].x += UI_EDGE_PADDING - game.ship.width*scale/2 - spacing;
+        lifeTriangle[i].y += UI_EDGE_PADDING + game.ship.length*scale/2;
+    }
 
-//     const char *scoreRMsg = TextFormat("%i", game.scoreR);
-//     int scoreRWidth = MeasureText(scoreRMsg, fontSize);
-//     int scoreRPosX = VIRTUAL_WIDTH/4*3 - scoreRWidth/2;
-
-//     int scorePosY = 50;
-//     DrawText(scoreLMsg, scoreLPosX, scorePosY, fontSize, RAYWHITE);
-//     DrawText(scoreRMsg, scoreRPosX, scorePosY, fontSize, RAYWHITE);
-// }
-
+    for (unsigned int i = 0; i < game.lives; i++)
+    {
+        for (unsigned int j = 0; j < 3; j++)
+        {
+            lifeTriangle[j].x += spacing + game.ship.width*scale;
+        }
+        DrawTriangle(lifeTriangle[0], lifeTriangle[1], lifeTriangle[2], GRAY);
+    }
+}
