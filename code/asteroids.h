@@ -94,6 +94,7 @@ typedef struct SpaceShip {
     float respawnTimer;
     float safeRespawnTimer;
     unsigned int shotCount;
+    bool isThrusting;
     bool isAtScreenEdge;
     bool exploded;
 } SpaceShip;

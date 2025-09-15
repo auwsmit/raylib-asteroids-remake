@@ -302,19 +302,9 @@ bool CheckCollisionAsteroidShip(Asteroid *rock, SpaceShip *ship)
 
 void UpdateGameFrame(void)
 {
-    game.frameTime = GetFrameTime();
     if (game.newLevelTimer == 0) // update ship for first frame
     {
         UpdateShip(&game.ship);
-    }
-    if (game.newLevelTimer < NEW_LEVEL_TIMER)
-        game.newLevelTimer += game.frameTime;
-
-    if (IsInputActionPressed(INPUT_ACTION_BACK))
-    {
-        ChangeUiMenu(UI_MENU_TITLE);
-        PlaySound(game.beeps[BEEP_MENU]);
-        return; // back to main game loop: UpdateDrawFrame()
     }
 
     // Detect win state and go to next level
@@ -353,7 +343,8 @@ void UpdateGameFrame(void)
     }
 
     // Pause
-    if (IsInputActionPressed(INPUT_ACTION_PAUSE))
+    if (IsInputActionPressed(INPUT_ACTION_PAUSE) ||
+        IsInputActionPressed(INPUT_ACTION_CANCEL))
     {
         game.isPaused = !game.isPaused;
         if (game.isPaused)
@@ -362,6 +353,9 @@ void UpdateGameFrame(void)
             ui.currentMenu = UI_MENU_GAMEPLAY;
         PlaySound(game.beeps[BEEP_MENU]);
     }
+
+    if (!game.isPaused && game.newLevelTimer < NEW_LEVEL_TIMER)
+        game.newLevelTimer += game.frameTime;
 
     if (!game.isPaused && game.newLevelTimer > NEW_LEVEL_TIMER)
     {
@@ -445,7 +439,10 @@ void UpdateShip(SpaceShip *ship)
         thrust = Vector2Scale(thrust, game.frameTime);
         ship->velocity = Vector2Add(ship->velocity, thrust);
         ship->velocity = Vector2ClampValue(ship->velocity, 0, SHIP_MAX_SPEED);
+        ship->isThrusting = true;
     }
+    else if (ship->isThrusting)
+        ship->isThrusting = false;
 
     if (IsInputActionDown(INPUT_ACTION_SHOOT))
     {
@@ -616,7 +613,7 @@ void DrawShip(SpaceShip *ship)
 
     // Get and transform ship triangle + jet triangle
     DrawTriangle(ship->shipPoints[0], ship->shipPoints[1], ship->shipPoints[2], shipColor);
-    if (IsInputActionDown(INPUT_ACTION_FORWARD))
+    if (ship->isThrusting)
         DrawTriangle(ship->jetPoints[0], ship->jetPoints[1], ship->jetPoints[2], Fade(ORANGE, 0.5f));
 
     // Clones at opposite side of screen

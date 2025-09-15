@@ -22,7 +22,7 @@ void InitDefaultInputControls(void)
 
         // Menu and Game
         .keyMaps[INPUT_ACTION_CONFIRM] =   { KEY_ENTER, KEY_SPACE },
-        .keyMaps[INPUT_ACTION_BACK] =      { KEY_ESCAPE, KEY_BACKSPACE, },
+        .keyMaps[INPUT_ACTION_CANCEL] =    { KEY_ESCAPE, KEY_BACKSPACE, },
         .keyMaps[INPUT_ACTION_MENU_UP] =   { KEY_W, KEY_UP },
         .keyMaps[INPUT_ACTION_MENU_DOWN] = { KEY_S, KEY_UP },
         .keyMaps[INPUT_ACTION_PAUSE] =     { KEY_P },

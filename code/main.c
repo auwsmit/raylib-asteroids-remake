@@ -104,6 +104,7 @@ void UpdateDrawFrame(void)
 {
     // Update
     // ----------------------------------------------------------------------------
+    game.frameTime = GetFrameTime();
     HandleToggleFullscreen();
     UpdateCameraViewport();
 

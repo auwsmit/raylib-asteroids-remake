@@ -110,18 +110,23 @@ void UpdateUiFrame(void)
 {
     if (ui.currentMenu != UI_MENU_GAMEPLAY)
     {
-        if (IsInputActionPressed(INPUT_ACTION_BACK) && ui.currentMenu != UI_MENU_TITLE)
+        // Cancel/Back to main title menu
+        if (IsInputActionPressed(INPUT_ACTION_CANCEL) &&
+            ui.currentMenu != UI_MENU_TITLE &&
+            ui.currentMenu != UI_MENU_PAUSE)
         {
             ChangeUiMenu(UI_MENU_TITLE);
             PlaySound(game.beeps[BEEP_MENU]);
         }
 
+        // Input for menu selection and movement
         UiButton *selectedButton = &ui.menus[ui.currentMenu].buttons[ui.selectedId];
         UpdateUiButtonSelect(selectedButton);
         UpdateUiMenuTraverse();
     }
     else if (!game.isPaused)
     {
+        // Input for single button selection
         UpdateUiButtonMouseHover(&ui.pause);
         UpdateUiButtonSelect(&ui.pause);
     }
