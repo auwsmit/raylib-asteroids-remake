@@ -9,7 +9,7 @@
 
 #include "config.h"
 #include "input.h"
-#include "asteroids.h"
+#include "game.h"
 
 #define ARRAY_SIZE(arr) (sizeof(arr)/sizeof((arr)[0]))
 
@@ -326,6 +326,7 @@ void ChangeUiMenu(UiMenuState newMenu)
     {
         // game.currentMode = (GameMode)ui.selectedId;
         game.currentScreen = SCREEN_GAMEPLAY;
+        InitLevel(1);
     }
 
     ui.currentMenu = newMenu;
@@ -379,23 +380,19 @@ void DrawUiFrame(void)
         // Fade animation
         Color fadeColor = Fade(RAYWHITE, ui.textFade);
 
-        // Draw pause message
+        // Draw messages depending on game state
+        bool centerText = false;
         const char *text;
         if (game.isPaused)
         {
             text = "PAUSED";
-            int textOffset = MeasureText(text, UI_FONT_SIZE_CENTER)/2;
-            DrawText(text, VIRTUAL_WIDTH/2 - textOffset,
-                     VIRTUAL_HEIGHT/2 - UI_FONT_SIZE_CENTER/2,
-                     UI_FONT_SIZE_CENTER, fadeColor);
+            centerText = true;
         }
+
         else if (game.lives <= 0)
         {
             text = "GAME OVER";
-            int textOffset = MeasureText(text, UI_FONT_SIZE_CENTER)/2;
-            DrawText(text, VIRTUAL_WIDTH/2 - textOffset,
-                     VIRTUAL_HEIGHT/2 - UI_FONT_SIZE_CENTER/2,
-                     UI_FONT_SIZE_CENTER, fadeColor);
+            centerText = true;
         }
         else if (game.newLevelTimer < NEW_LEVEL_TIMER)
         {
@@ -403,22 +400,21 @@ void DrawUiFrame(void)
                 text = "GAME START";
             else
                 text = TextFormat("LEVEL %i", game.level);
-            int textOffset = MeasureText(text, UI_FONT_SIZE_CENTER)/2;
-            // float textFlashDuration = 0.75f;
-            // if (fmod(game.newLevelTimer, textFlashDuration*2) < textFlashDuration)
-                DrawText(text, VIRTUAL_WIDTH/2 - textOffset,
-                         VIRTUAL_HEIGHT/2 - UI_FONT_SIZE_CENTER/2,
-                         UI_FONT_SIZE_CENTER, fadeColor);
+            centerText = true;
         }
-        // else if (game.currentMode == MODE_DEMO) // Draw demo mode message
-        // {
-        //     text = "DEMO MODE";
-        //     int textOffset = MeasureText(text, UI_FONT_SIZE_CENTER)/2;
-        //     DrawText(text, VIRTUAL_WIDTH/2 - textOffset,
-        //              VIRTUAL_HEIGHT/2 - UI_FONT_SIZE_CENTER/2,
-        //              UI_FONT_SIZE_CENTER, fadeColor);
-        // }
+        else if (game.ship.exploded && game.ship.respawnTimer < SHIP_RESPAWN_TIME)
+        {
+            text = "RESPAWNING...";
+            centerText = true;
+        }
 
+        if (centerText)
+        {
+            int textOffset = MeasureText(text, UI_FONT_SIZE_CENTER)/2;
+            DrawText(text, VIRTUAL_WIDTH/2 - textOffset,
+                     VIRTUAL_HEIGHT/2 - UI_FONT_SIZE_CENTER/2,
+                     UI_FONT_SIZE_CENTER, fadeColor);
+        }
     }
 
     // Debug:

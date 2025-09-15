@@ -4,7 +4,7 @@
 
 #include "logo.h"
 #include "config.h"
-#include "asteroids.h"
+#include "game.h"
 
 // Global animation state
 Logo raylibLogo = { 0 };

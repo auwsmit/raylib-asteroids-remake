@@ -8,7 +8,7 @@
 #include "input.h"  // Input controls / key mappings
 #include "logo.h"   // Raylib logo animation
 #include "ui.h"     // User interface (menus and buttons)
-#include "asteroids.h"
+#include "game.h"
 
 #if defined(PLATFORM_WEB) // for compiling to wasm (web assembly)
     #include <emscripten/emscripten.h>
