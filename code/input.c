@@ -31,9 +31,9 @@ void InitDefaultInputControls(void)
         .keyMaps[INPUT_ACTION_LEFT] =      { KEY_A, KEY_LEFT, },
         .keyMaps[INPUT_ACTION_RIGHT] =     { KEY_D, KEY_RIGHT, },
         .keyMaps[INPUT_ACTION_FORWARD] =   { KEY_W, KEY_UP, },
-        .mouseMaps[INPUT_ACTION_FORWARD] = { INPUT_MOUSE_LEFT_BUTTON },
+        .mouseMaps[INPUT_ACTION_FORWARD] = { MOUSE_RIGHT_BUTTON },
         .keyMaps[INPUT_ACTION_SHOOT] =     { KEY_SPACE },
-        .mouseMaps[INPUT_ACTION_SHOOT] =   { MOUSE_RIGHT_BUTTON },
+        .mouseMaps[INPUT_ACTION_SHOOT] =   { INPUT_MOUSE_LEFT_BUTTON },
     };
 
     gameInput = defaultControls;
@@ -146,19 +146,4 @@ Vector2 GetScaledMousePosition(void)
     mousePos = Vector2Clamp(mousePos, (Vector2){ 0, 0 }, (Vector2){ (float)VIRTUAL_WIDTH, (float)VIRTUAL_HEIGHT });
 
     return mousePos;
-}
-
-void HandleToggleFullscreen(void)
-{
-    // No fullscreen input for web because it's buggy
-    // For now just use emscripten's fullscreen button
-#if !defined(PLATFORM_WEB)
-    // Input for fullscreen
-    if (IsInputActionPressed(INPUT_ACTION_FULLSCREEN))
-    {
-        // Borderless Windowed is generally nicer to use on desktop
-        ToggleBorderlessWindowed();
-        PollInputEvents(); // Skip to the next frame's input
-    }
-#endif
 }

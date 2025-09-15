@@ -33,7 +33,6 @@ void InitRaylibLogo(void)
 
 void UpdateRaylibLogo(void)
 {
-    float deltaTime = GetFrameTime();
     const float growSpeed = RAYLIB_LOGO_WIDTH*0.9375f; // Speed that lines grow
     const float letterDelay = 0.2f; // Time between each letter appearing
     const float fadeSpeed = 1.0f; // Fade out in 1 second
@@ -61,14 +60,14 @@ void UpdateRaylibLogo(void)
     // https://github.com/sponsors/raysan5 https://www.patreon.com/raylib :)
     if (skipped == true && raylibLogo.elapsedTime < 1.0f)
     {
-        raylibLogo.elapsedTime += GetFrameTime();
+        raylibLogo.elapsedTime += game.frameTime;
         return;
     }
 
     switch (raylibLogo.state)
     {
         case LOGO_START: // Small box blinking
-            raylibLogo.elapsedTime += deltaTime;
+            raylibLogo.elapsedTime += game.frameTime;
             if (raylibLogo.elapsedTime >= 2.0f) // 2 seconds delay
             {
                 raylibLogo.state = LOGO_GROW1;
@@ -77,8 +76,8 @@ void UpdateRaylibLogo(void)
             break;
 
         case LOGO_GROW1: // Top and left bars growing
-            raylibLogo.topSideRecWidth += growSpeed*deltaTime;
-            raylibLogo.leftSideRecHeight += growSpeed*deltaTime;
+            raylibLogo.topSideRecWidth += growSpeed*game.frameTime;
+            raylibLogo.leftSideRecHeight += growSpeed*game.frameTime;
 
             if (raylibLogo.topSideRecWidth >= RAYLIB_LOGO_WIDTH)
             {
@@ -90,8 +89,8 @@ void UpdateRaylibLogo(void)
             break;
 
         case LOGO_GROW2: // Bottom and right bars growing
-            raylibLogo.bottomSideRecWidth += growSpeed*deltaTime;
-            raylibLogo.rightSideRecHeight += growSpeed*deltaTime;
+            raylibLogo.bottomSideRecWidth += growSpeed*game.frameTime;
+            raylibLogo.rightSideRecHeight += growSpeed*game.frameTime;
 
             if (raylibLogo.bottomSideRecWidth >= RAYLIB_LOGO_WIDTH)
             {
@@ -103,7 +102,7 @@ void UpdateRaylibLogo(void)
             break;
 
         case LOGO_TEXT: // Letters appearing (one by one)
-            raylibLogo.elapsedTime += deltaTime;
+            raylibLogo.elapsedTime += game.frameTime;
 
             if (raylibLogo.lettersCount < 10 && raylibLogo.elapsedTime >= letterDelay)
             {
@@ -114,7 +113,7 @@ void UpdateRaylibLogo(void)
             // When all letters have appeared, just fade out everything
             if (raylibLogo.lettersCount >= 10)
             {
-                raylibLogo.alpha += fadeSpeed*deltaTime;
+                raylibLogo.alpha += fadeSpeed*game.frameTime;
                 if (raylibLogo.alpha >= 1.0f)
                 {
                     raylibLogo.alpha = 1.0f;
@@ -125,7 +124,7 @@ void UpdateRaylibLogo(void)
             break;
 
         case LOGO_PAUSE: // Pause at end of animation
-            raylibLogo.elapsedTime += deltaTime;
+            raylibLogo.elapsedTime += game.frameTime;
             if (raylibLogo.elapsedTime >= 1.5f)
                 raylibLogo.state = LOGO_END;
             break;

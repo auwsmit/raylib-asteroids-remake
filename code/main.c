@@ -27,11 +27,13 @@ Viewport  view; // for rendering within aspect ratio
 // Local Functions Declaration
 // ----------------------------------------------------------------------------
 void CreateNewWindow(void); // Creates a new window with the proper initial settings
-void RunGameLoop(void); // Runs the game loop depending on platform
-void UpdateCameraViewport(void);
+void RunGameLoop(void);     // Runs the game loop depending on platform
 
 void UpdateDrawFrame(void); // Update and Draw the current frame
                             // Most of the game loop's code is found in here
+
+void UpdateCameraViewport(void);
+void HandleToggleFullscreen(void);
 
 // Main entry point
 // ----------------------------------------------------------------------------
@@ -97,33 +99,6 @@ void RunGameLoop(void)
 #endif
 }
 
-void UpdateCameraViewport(void)
-{
-    int winWidth = GetScreenWidth();
-    int winHeight = GetScreenHeight();
-    float windowAspect = (float)winWidth/(float)winHeight;
-
-    if (windowAspect > ASPECT_RATIO)
-    {
-        // Window too wide → pillarbox
-        view.height = winHeight;
-        view.width = (int)(winHeight*ASPECT_RATIO);
-        view.x = (winWidth - view.width)/2;
-        view.y = 0;
-    }
-    else
-    {
-        // Window too tall → letterbox
-        view.width = winWidth;
-        view.height = (int)(winWidth/ASPECT_RATIO);
-        view.x = 0;
-        view.y = (winHeight - view.height)/2;
-    }
-
-    game.camera.offset = (Vector2){ view.x + view.width/2.0f, view.y + view.height/2.0f };
-    game.camera.zoom   = (float)view.width/VIRTUAL_WIDTH;
-}
-
 // Update game data and draw elements to the screen for the current frame
 void UpdateDrawFrame(void)
 {
@@ -170,4 +145,46 @@ void UpdateDrawFrame(void)
     // DrawFPS(0, 0);
 
     EndDrawing();
+}
+
+void UpdateCameraViewport(void)
+{
+    int winWidth = GetScreenWidth();
+    int winHeight = GetScreenHeight();
+    float windowAspect = (float)winWidth/(float)winHeight;
+
+    if (windowAspect > ASPECT_RATIO)
+    {
+        // Window too wide → pillarbox
+        view.height = winHeight;
+        view.width = (int)(winHeight*ASPECT_RATIO);
+        view.x = (winWidth - view.width)/2;
+        view.y = 0;
+    }
+    else
+    {
+        // Window too tall → letterbox
+        view.width = winWidth;
+        view.height = (int)(winWidth/ASPECT_RATIO);
+        view.x = 0;
+        view.y = (winHeight - view.height)/2;
+    }
+
+    game.camera.offset = (Vector2){ view.x + view.width/2.0f, view.y + view.height/2.0f };
+    game.camera.zoom   = (float)view.width/VIRTUAL_WIDTH;
+}
+
+void HandleToggleFullscreen(void)
+{
+    // No fullscreen input for web because it's buggy
+    // For now just use emscripten's fullscreen button
+#if !defined(PLATFORM_WEB)
+    // Input for fullscreen
+    if (IsInputActionPressed(INPUT_ACTION_FULLSCREEN))
+    {
+        // Borderless Windowed is generally nicer to use on desktop
+        ToggleBorderlessWindowed();
+        PollInputEvents(); // Skip to the next frame's input
+    }
+#endif
 }

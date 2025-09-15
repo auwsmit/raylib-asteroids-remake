@@ -85,6 +85,9 @@ void InitGameState(void)
     game.beeps[BEEP_MENU] = GenBeep(300.0f, 0.03f);
     game.beeps[BEEP_SHOOT] = GenBeep(400.0f, 0.05f);
     game.beeps[BEEP_EXPLODE] = GenBeep(150.0f, EXPLOSION_TIME);
+
+    // TODO move this to gamestate or make a function or something idk
+    ui.textFade = 0.0f;
 }
 
 Sound GenBeep(float freq, float lengthSec)
@@ -154,7 +157,7 @@ void ShootMissile(SpaceShip *ship)
     spawnPos = Vector2Rotate(spawnPos, shot->angle*DEG2RAD);
     spawnPos = Vector2Add(spawnPos, ship->position);
     shot->position = spawnPos;
-    shot->despawnTimer = 0.8f;
+    shot->despawnTimer = MISSILE_DESPAWN_TIME;
 
     ship->shotCount++;
     PlaySound(game.beeps[BEEP_SHOOT]);
@@ -299,6 +302,14 @@ bool CheckCollisionAsteroidShip(Asteroid *rock, SpaceShip *ship)
 
 void UpdateGameFrame(void)
 {
+    game.frameTime = GetFrameTime();
+    if (game.newLevelTimer == 0) // update ship for first frame
+    {
+        UpdateShip(&game.ship);
+    }
+    if (game.newLevelTimer < NEW_LEVEL_TIMER)
+        game.newLevelTimer += game.frameTime;
+
     if (IsInputActionPressed(INPUT_ACTION_BACK))
     {
         ChangeUiMenu(UI_MENU_TITLE);
@@ -312,23 +323,30 @@ void UpdateGameFrame(void)
         game.level++;
         game.rockCount = 0;
         game.eliminatedCount = 0;
-        game.rockCountStartOfLevel += game.level * 2;
+        game.rockCountStartOfLevel += (game.level % 2)? 1 : 2;
+        game.newLevelTimer = 0;
+        game.ship.safeRespawnTimer = SHIP_SAFE_TIME;
+        game.ship.velocity = (Vector2){ 0, 0 };
+        ui.textFade = 0.0f;
         for (unsigned int i = 0; i < game.rockCountStartOfLevel; i++)
             CreateAsteroidRandom(ASTEROID_SIZE_BIG);
     }
 
     // Game Over
-    if (game.lives == 0)
+    bool inputCooldownFinished = (SHIP_RESPAWN_TIME - game.ship.respawnTimer >= GAMEOVER_INPUT_COOLDOWN);
+    if (game.lives == 0 && inputCooldownFinished)
     {
-        if (IsInputActionPressed(INPUT_ACTION_CONFIRM))
+        if (IsInputActionPressed(INPUT_ACTION_CONFIRM) || IsGestureDetected(GESTURE_TAP))
         {
             PollInputEvents(); // Skip input this frame
-            game.ship.respawnTimer = 0;
             game.lives = STARTING_LIVES;
             game.level = 1;
             game.rockCountStartOfLevel = ASTEROID_AMOUNT_LVL1;
             game.rockCount = 0;
             game.eliminatedCount = 0;
+            game.newLevelTimer = 0;
+            game.ship.respawnTimer = 0;
+            ui.textFade = 0.0f;
             for (unsigned int i = 0; i < game.rockCountStartOfLevel; i++)
                 CreateAsteroidRandom(ASTEROID_SIZE_BIG);
         }
@@ -345,7 +363,7 @@ void UpdateGameFrame(void)
         PlaySound(game.beeps[BEEP_MENU]);
     }
 
-    if (!game.isPaused)
+    if (!game.isPaused && game.newLevelTimer > NEW_LEVEL_TIMER)
     {
         // Update rocks
         for (unsigned int i = 0; i < game.rockCount; i++)
@@ -377,12 +395,12 @@ void WrapPastEdge(Vector2 *position)
 
 void UpdateShip(SpaceShip *ship)
 {
-    float frameTime = GetFrameTime();
-
+    // Update timers
     if (ship->exploded)
     {
-        game.ship.respawnTimer -= frameTime;
+        game.ship.respawnTimer -= game.frameTime;
 
+        // Respawn
         if ((game.ship.respawnTimer <= EPSILON) && (game.lives > 0))
         {
             game.ship.exploded = false;
@@ -390,15 +408,16 @@ void UpdateShip(SpaceShip *ship)
             game.ship.velocity = (Vector2){ 0, 0 };
             game.ship.respawnTimer = SHIP_RESPAWN_TIME;
             if (game.lives != STARTING_LIVES)
-                game.ship.safeTimer = SHIP_SAFE_TIME;
+                game.ship.safeRespawnTimer = SHIP_SAFE_TIME;
             UpdateShip(ship);
         }
 
         // do not update, ship has exploded
         return;
     }
-    if (ship->safeTimer > 0)
-        ship->safeTimer -= frameTime;
+    if (ship->safeRespawnTimer > 0)
+        ship->safeRespawnTimer -= game.frameTime;
+
 
     // Player Input
     // Rotate (mouse)
@@ -414,29 +433,43 @@ void UpdateShip(SpaceShip *ship)
     }
     // Rotate (keys)
     if (IsInputActionDown(INPUT_ACTION_LEFT))
-        ship->rotation -= SHIP_TURN_SPEED*frameTime;
+        ship->rotation -= SHIP_TURN_SPEED*game.frameTime;
     if (IsInputActionDown(INPUT_ACTION_RIGHT))
-        ship->rotation += SHIP_TURN_SPEED*frameTime;
+        ship->rotation += SHIP_TURN_SPEED*game.frameTime;
 
     // Calculate thrust amount
     if (IsInputActionDown(INPUT_ACTION_FORWARD))
     {
         Vector2 thrust = (Vector2){ 0, -SHIP_THRUST_SPEED };
         thrust = Vector2Rotate(thrust, ship->rotation*DEG2RAD);
-        thrust = Vector2Scale(thrust, frameTime);
+        thrust = Vector2Scale(thrust, game.frameTime);
         ship->velocity = Vector2Add(ship->velocity, thrust);
         ship->velocity = Vector2ClampValue(ship->velocity, 0, SHIP_MAX_SPEED);
     }
 
-    if (IsInputActionPressed(INPUT_ACTION_SHOOT))
-        ShootMissile(ship);
+    if (IsInputActionDown(INPUT_ACTION_SHOOT))
+    {
+        if (ship->autoFireTimer == 0)
+        {
+            ShootMissile(ship);
+            ship->autoFireTimer += game.frameTime;
+        }
+        else if (ship->autoFireTimer > SHIP_AUTO_FIRE_RATE)
+            ship->autoFireTimer = 0;
+        else
+            ship->autoFireTimer += game.frameTime;
+    }
+    else
+        if (ship->autoFireTimer != 0)
+            ship->autoFireTimer = 0;
+
 
     // Apply friction (smooth exponential decay)
-    float slowdown = expf(-SPACE_FRICTION/10*frameTime);
+    float slowdown = expf(-SHIP_SPACE_FRICTION/10*game.frameTime);
     ship->velocity = Vector2Scale(ship->velocity, slowdown);
 
     // Update position
-    Vector2 scaledVelocity = Vector2Scale(ship->velocity, frameTime);
+    Vector2 scaledVelocity = Vector2Scale(ship->velocity, game.frameTime);
     ship->position = Vector2Add(ship->position, scaledVelocity);
 
     // Calculate new triangle points for collision & screen wrap
@@ -453,7 +486,7 @@ void UpdateShip(SpaceShip *ship)
 
 
     // Check collision with asteroids
-    if (ship->safeTimer > 0) return;
+    if (ship->safeRespawnTimer > 0) return;
     for (unsigned int i = 0; i < game.rockCount; i++)
     {
         Asteroid *rock = &game.rocks[i];
@@ -475,7 +508,7 @@ void UpdateAsteroid(Asteroid *rock)
     if (rock->exploded) return;
 
     // Update position
-    Vector2 currentVelocity = (Vector2){ 0, rock->speed*GetFrameTime() };
+    Vector2 currentVelocity = (Vector2){ 0, rock->speed*game.frameTime };
     currentVelocity = Vector2Rotate(currentVelocity, rock->angle*DEG2RAD);
     rock->position = Vector2Add(rock->position, currentVelocity);
     rock->isAtScreenEdge = IsCircleOnEdge(rock->position, rock->radius);
@@ -519,19 +552,20 @@ void UpdateMissile(Missile *shot)
 {
     if (shot->exploded)
     {
-        shot->explosionTimer -= GetFrameTime();
+        shot->explosionTimer -= game.frameTime;
         return;
     }
 
     // Update position
-    Vector2 currentVelocity = (Vector2){ 0, shot->speed*GetFrameTime() };
+    Vector2 currentVelocity = (Vector2){ 0, shot->speed*game.frameTime };
     currentVelocity = Vector2Rotate(currentVelocity, shot->angle*DEG2RAD);
+    currentVelocity = Vector2Add(currentVelocity, Vector2Scale(game.ship.velocity, game.frameTime));
     shot->position = Vector2Add(shot->position, currentVelocity);
     shot->isAtScreenEdge = IsCircleOnEdge(shot->position, shot->radius);
     WrapPastEdge(&shot->position);
 
     // Update despawn timer
-    shot->despawnTimer -= GetFrameTime();
+    shot->despawnTimer -= game.frameTime;
     if (shot->despawnTimer <= 0)
     {
         shot->exploded = true;
@@ -577,7 +611,7 @@ void DrawShip(SpaceShip *ship)
 {
     // Transparent ship during respawn invincibility
     Color shipColor = GRAY;
-    if (ship->safeTimer > 0)
+    if (ship->safeRespawnTimer > 0)
         shipColor = Fade(shipColor, 0.5);
 
     // Get and transform ship triangle + jet triangle

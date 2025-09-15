@@ -12,6 +12,14 @@
 #define STARTING_LIVES 3
 #define STAR_AMOUNT 800
 #define EXPLOSION_TIME 0.4f
+#define NEW_LEVEL_TIMER 3.0f
+#define GAMEOVER_INPUT_COOLDOWN 1.0f
+
+#define ASTEROID_AMOUNT_LVL1 2
+#define ASTEROID_RADIUS_BIG 80
+#define ASTEROID_RADIUS_MEDIUM 40
+#define ASTEROID_RADIUS_SMALL 20
+#define ASTEROID_SPEED 300.0f
 
 #define SHIP_WIDTH 40.0f
 #define SHIP_LENGTH 60.0f
@@ -20,17 +28,13 @@
 #define SHIP_MAX_SPEED 1000.0f
 #define SHIP_RESPAWN_TIME 2.0f
 #define SHIP_SAFE_TIME 3.0f
-#define SPACE_FRICTION 2.0f // how quickly the player slows to 0
+#define SHIP_AUTO_FIRE_RATE 0.3f
+#define SHIP_SPACE_FRICTION 2.0f // how quickly the player slows to 0
 
-#define MISSILE_MAX 10
+#define MISSILE_MAX 5
 #define MISSILE_RADIUS 5.0f
-#define MISSILE_SPEED 1100.0f
-
-#define ASTEROID_AMOUNT_LVL1 2
-#define ASTEROID_RADIUS_BIG 80
-#define ASTEROID_RADIUS_MEDIUM 40
-#define ASTEROID_RADIUS_SMALL 20
-#define ASTEROID_SPEED 300.0f
+#define MISSILE_SPEED 700.0f
+#define MISSILE_DESPAWN_TIME 1.25f
 
 // Types and Structures
 // ----------------------------------------------------------------------------
@@ -86,8 +90,9 @@ typedef struct SpaceShip {
     float rotation; // in degrees, 0 is pointing up, 90 is right
     float width;
     float length;
+    float autoFireTimer;
     float respawnTimer;
-    float safeTimer;
+    float safeRespawnTimer;
     unsigned int shotCount;
     bool isAtScreenEdge;
     bool exploded;
@@ -109,6 +114,8 @@ typedef struct GameState {
     unsigned int rockCountStartOfLevel;
     unsigned int rockCount;
     unsigned int eliminatedCount;
+    float frameTime;
+    float newLevelTimer;
     // unsigned int scoreL;
     // unsigned int scoreR;
     bool isPaused;
@@ -127,9 +134,9 @@ void FreeGameState(void); // Free any allocated memory within game state
 
 // Create/Destroy Entities
 void ShootMissile(SpaceShip *ship);
-Color ColorBrightnessVariation(Color color);
 Asteroid *CreateAsteroid(SizeOfAsteroid size, Vector2 position, float angle, Color color);
 void CreateAsteroidRandom(SizeOfAsteroid size);
+Color ColorBrightnessVariation(Color color);
 void SplitAsteroid(Asteroid *rock);
 
 // Collision

@@ -5,7 +5,7 @@
 #include "ui.h"
 
 #include "raylib.h"
-#include "raymath.h" // needed for Vector math
+#include "raymath.h"
 
 #include "config.h"
 #include "input.h"
@@ -126,10 +126,10 @@ void UpdateUiFrame(void)
         UpdateUiButtonSelect(&ui.pause);
     }
 
-    // Update pause fade animation
+    // Update text fade animation
     static float fadeLength = 1.5f; // Fade in and out at this rate in seconds
     static bool fadingOut = false;
-    float fadeIncrement = (1.0f/fadeLength)*GetFrameTime();
+    float fadeIncrement = (1.0f/fadeLength)*game.frameTime;
 
     if (ui.textFade >= 1.0f)
         fadingOut = true;
@@ -201,7 +201,7 @@ void UpdateUiMenuTraverse(void)
     // Update auto-scroll timer when holding keys
     if (isInputUp || isInputDown)
     {
-        ui.keyHeldTime += GetFrameTime();
+        ui.keyHeldTime += game.frameTime;
         if (ui.keyHeldTime >= autoScrollInitPause)
         {
             ui.autoScroll = true;
@@ -375,9 +375,10 @@ void DrawUiFrame(void)
         Color fadeColor = Fade(RAYWHITE, ui.textFade);
 
         // Draw pause message
+        const char *text;
         if (game.isPaused)
         {
-            char *text = "PAUSED";
+            text = "PAUSED";
             int textOffset = MeasureText(text, UI_FONT_SIZE_CENTER)/2;
             DrawText(text, VIRTUAL_WIDTH/2 - textOffset,
                      VIRTUAL_HEIGHT/2 - UI_FONT_SIZE_CENTER/2,
@@ -385,11 +386,24 @@ void DrawUiFrame(void)
         }
         else if (game.lives <= 0)
         {
-            char *text = "GAME OVER";
+            text = "GAME OVER";
             int textOffset = MeasureText(text, UI_FONT_SIZE_CENTER)/2;
             DrawText(text, VIRTUAL_WIDTH/2 - textOffset,
                      VIRTUAL_HEIGHT/2 - UI_FONT_SIZE_CENTER/2,
-                     UI_FONT_SIZE_CENTER, RAYWHITE);
+                     UI_FONT_SIZE_CENTER, fadeColor);
+        }
+        else if (game.newLevelTimer < NEW_LEVEL_TIMER)
+        {
+            if (game.level == 1)
+                text = "GAME START";
+            else
+                text = TextFormat("LEVEL %i", game.level);
+            int textOffset = MeasureText(text, UI_FONT_SIZE_CENTER)/2;
+            // float textFlashDuration = 0.75f;
+            // if (fmod(game.newLevelTimer, textFlashDuration*2) < textFlashDuration)
+                DrawText(text, VIRTUAL_WIDTH/2 - textOffset,
+                         VIRTUAL_HEIGHT/2 - UI_FONT_SIZE_CENTER/2,
+                         UI_FONT_SIZE_CENTER, fadeColor);
         }
         // else if (game.currentMode == MODE_DEMO) // Draw demo mode message
         // {
@@ -407,6 +421,8 @@ void DrawUiFrame(void)
     // DrawText(TextFormat("%2i rock total", game.rockCount), 0, 25, 20, RAYWHITE);
     // DrawText(TextFormat("%2i eliminated", game.eliminatedCount), 0, 50, 20, RAYWHITE);
     // DrawText(TextFormat("%2i remaining", game.rockCount - game.eliminatedCount), 0, 75, 20, RAYWHITE);
+    // DrawText(TextFormat("speed: %2.2f", Vector2Length(game.ship.velocity)), 0, 100, 20, RAYWHITE);
+    // DrawText(TextFormat("level timer: %2.2f", (game.newLevelTimer)), 0, 125, 20, RAYWHITE);
 }
 
 void DrawUiElement(UiButton *button)

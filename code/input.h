@@ -43,6 +43,5 @@ bool IsInputKeyModifier(KeyboardKey key);
 bool IsInputActionPressed(InputAction action);
 bool IsInputActionDown(InputAction action);
 Vector2 GetScaledMousePosition(void);
-void HandleToggleFullscreen(void);
 
 #endif // ASTEROIDS_INPUT_HEADER_GUARD
