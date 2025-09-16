@@ -45,9 +45,10 @@ OUTPUT     := asteroids
 
 # Source code, headers, and object file paths
 SRC_DIR    := code
+OBJ_DIR    := $(SRC_DIR)/obj
 SRC        := $(wildcard $(SRC_DIR)/*.c)
 HEADERS    := $(wildcard $(SRC_DIR)/*.h)
-OBJS       := $(SRC:.c=$(OBJ_EXT))
+OBJS       := $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%$(OBJ_EXT),$(SRC))
 
 # raylib path
 RAYLIB_INC := raylib/include
@@ -109,7 +110,7 @@ CFLAGS += -Wextra -Wmissing-prototypes -Wstrict-prototypes
 # /MD    Link against MSVCRT.DLL (multithreaded DLL runtime)
 # /Zi    Generate complete debugging information (.pdb files)
 ifeq ($(CC),cl)
-    CFLAGS := /Fo"$(SRC_DIR)\\" /W3 /MD
+    CFLAGS := /Fo"$(OBJ_DIR)\\" /W3 /MD
 endif
 
 # Define C preprocessor flags and linker flags
@@ -191,8 +192,13 @@ $(OUTPUT)$(EXTENSION): $(OBJS)
 	$(CC) $(OUTFLAG) $^ $(LINKFLAGS)
 
 # Compile c files to object files
-$(SRC_DIR)/%$(OBJ_EXT): $(SRC_DIR)/%.c $(HEADERS)
+$(OBJ_DIR)/%$(OBJ_EXT): $(SRC_DIR)/%.c $(HEADERS)
 	$(CC) $(CFLAG_C) $< $(CFLAG_O) $@ $(OPT_FLAGS) $(DEBUG_FLAGS) $(CFLAGS) $(PLATFLAG) $(CPPFLAGS)
+
+# Create folder for object files
+$(OBJ_DIR):
+	mkdir -p $(OBJ_DIR)
+$(OBJS): | $(OBJ_DIR)
 
 # Build with clang
 llvm:
@@ -217,8 +223,7 @@ run:
 
 # Clean up generated build files
 clean:
-	@rm -rf $(OUTPUT)$(EXTENSION) $(SRC:.c=.o) $(SRC:.c=.obj) \
+	@rm -rf $(OUTPUT)$(EXTENSION) $(OBJ_DIR) \
 	        $(OUTPUT).html $(OUTPUT).js $(OUTPUT).wasm build_web/ \
 	        $(OUTPUT).ilk $(OUTPUT).pdb vc140.pdb *.rdi
 	@echo "Make build files cleaned"
-
