@@ -13,7 +13,7 @@
 #define UI_TITLE_SIZE        150   // title font size
 #define UI_TITLE_BUTTON_SIZE 80    // title menu button font size
 #define UI_CURSOR_SIZE       20.0f // cursor triangle size
-#define UI_FONT_SIZE_CENTER  180   // text at center of screen font size
+#define UI_FONT_SIZE_CENTER  140   // text at center of screen font size
 #define UI_FONT_SIZE_EDGE    50    // text at top of screen font size
 
 // UI spacing

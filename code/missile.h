@@ -1,6 +1,3 @@
-// EXPLANATION:
-// TODO
-
 #ifndef ASTEROIDS_MISSILE_HEADER_GUARD
 #define ASTEROIDS_MISSILE_HEADER_GUARD
 
@@ -35,4 +32,3 @@ void UpdateMissile(Missile *shot);
 void DrawMissile(Missile *shot);
 
 #endif // ASTEROIDS_MISSILE_HEADER_GUARD
-

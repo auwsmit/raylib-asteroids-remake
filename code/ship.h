@@ -35,6 +35,7 @@ typedef struct SpaceShip {
     float autoFireTimer;
     float respawnTimer;
     float safeRespawnTimer;
+    float explosionTimer;
     unsigned int shotCount;
     bool isThrusting;
     bool isAtScreenEdge;

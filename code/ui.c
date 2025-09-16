@@ -326,7 +326,7 @@ void ChangeUiMenu(UiMenuState newMenu)
     {
         // game.currentMode = (GameMode)ui.selectedId;
         game.currentScreen = SCREEN_GAMEPLAY;
-        InitLevel(1);
+        InitNewLevel(1);
     }
 
     ui.currentMenu = newMenu;
@@ -394,7 +394,12 @@ void DrawUiFrame(void)
             text = "GAME OVER";
             centerText = true;
         }
-        else if (game.newLevelTimer < NEW_LEVEL_TIMER)
+        else if (game.levelFinished)
+        {
+            text = "ASTEROIDS CLEARED";
+            centerText = true;
+        }
+        else if (game.newLevelTimer > EPSILON)
         {
             if (game.level == 1)
                 text = "GAME START";
@@ -408,6 +413,12 @@ void DrawUiFrame(void)
             centerText = true;
         }
 
+        if (game.delayTimer > EPSILON && !game.levelFinished)
+        {
+            centerText = false;
+            ui.textFade = 1.0f;
+        }
+
         if (centerText)
         {
             int textOffset = MeasureText(text, UI_FONT_SIZE_CENTER)/2;
@@ -418,12 +429,15 @@ void DrawUiFrame(void)
     }
 
     // Debug:
-    // DrawText(TextFormat("cursor selected: %i", menu->selectedId), 0, 40, 40, WHITE);
-    // DrawText(TextFormat("%2i rock total", game.rockCount), 0, 25, 20, RAYWHITE);
-    // DrawText(TextFormat("%2i eliminated", game.eliminatedCount), 0, 50, 20, RAYWHITE);
-    // DrawText(TextFormat("%2i remaining", game.rockCount - game.eliminatedCount), 0, 75, 20, RAYWHITE);
-    // DrawText(TextFormat("speed: %2.2f", Vector2Length(game.ship.velocity)), 0, 100, 20, RAYWHITE);
-    // DrawText(TextFormat("level timer: %2.2f", (game.newLevelTimer)), 0, 125, 20, RAYWHITE);
+    const int textSize = 50;
+    int textY = 100;
+    DrawText(TextFormat("%2i rock total", game.rockLimit), 0, textY, textSize, RAYWHITE);
+    textY += textSize;
+    DrawText(TextFormat("%2i remaining", game.rockLimit - game.eliminatedCount), 0, textY, textSize, RAYWHITE);
+    // textY += textSize;
+    // DrawText(TextFormat("speed: %2.2f", Vector2Length(game.ship.velocity)), 0, textY, textSize, RAYWHITE);
+    // textY += textSize;
+    // DrawText(TextFormat("level timer: %2.2f", (game.newLevelTimer)), 0, textY, textSize, RAYWHITE);
 }
 
 void DrawUiElement(UiButton *button)

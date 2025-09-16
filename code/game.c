@@ -13,6 +13,9 @@
 
 #define ARRAY_SIZE(arr) (sizeof(arr)/sizeof((arr)[0]))
 
+// Initialization
+// ----------------------------------------------------------------------------
+
 void InitGameState(void)
 {
     game = (GameState){
@@ -83,6 +86,42 @@ void InitGameState(void)
     game.beeps[BEEP_EXPLODE] = GenBeep(150.0f, EXPLOSION_TIME);
 }
 
+void InitNewLevel(unsigned int newLevel)
+{
+    game.lives = STARTING_LIVES;
+    game.level = newLevel;
+    game.rockCount = 0;
+    game.eliminatedCount = 0;
+    game.levelFinished = false;
+    game.newLevelTimer = NEW_LEVEL_TIMER;
+    if (newLevel == 1)
+    {
+        game.rockCountStartOfLevel = ASTEROID_AMOUNT_LVL1;
+        UpdateShipTriangles(&game.ship);
+    }
+    else
+    {
+        game.rockCountStartOfLevel += (newLevel % 2)? 1 : 2;
+        game.ship.safeRespawnTimer = SHIP_SAFE_TIME;
+        game.ship.velocity = (Vector2){ 0, 0 };
+    }
+    game.rockLimit = game.rockCountStartOfLevel*2*2*2 - game.rockCountStartOfLevel;
+
+    for (unsigned int i = 0; i < game.rockCountStartOfLevel; i++)
+    {
+        unsigned int rockIdx = CreateAsteroidRandom(ASTEROID_SIZE_BIG);
+        Asteroid *newRock = &game.rocks[rockIdx];
+        newRock->isAtScreenEdge = IsCircleOnEdge(newRock->position, newRock->radius);
+    }
+
+    for (unsigned int i = 0; i < MISSILE_MAX; i++)
+    {
+        game.ship.missiles[i].exploded = true;
+        game.ship.missiles[i].explosionTimer = 0;
+    }
+    ui.textFade = 1.0f;
+}
+
 Sound GenBeep(float freq, float lengthSec)
 {
     unsigned int sampleRate = 44100;
@@ -135,48 +174,109 @@ void FreeGameState(void)
         UnloadSound(game.beeps[i]); // beeps
 }
 
-void InitLevel(unsigned int currentLevel)
+// Update & Draw
+// ----------------------------------------------------------------------------
+
+void UpdateGameFrame(void)
 {
-    game.lives = STARTING_LIVES;
-    game.level = currentLevel;
-    game.rockCount = 0;
-    game.eliminatedCount = 0;
-    if (currentLevel == 1)
+    // Detect win state and go to next level
+    if (!game.levelFinished && game.lives > 0 &&
+        game.rockLimit == game.eliminatedCount)
     {
-        game.newLevelTimer = 1.0f;
-        game.rockCountStartOfLevel = ASTEROID_AMOUNT_LVL1;
-        UpdateShipTriangles(&game.ship);
+        game.levelFinished = true;
+        game.delayTimer = 3.0f;
+        ui.textFade = 1.0f;
     }
-    else
+    if (game.levelFinished && (game.delayTimer < EPSILON))
+        InitNewLevel(game.level + 1);
+
+    // Pause
+    if (IsInputActionPressed(INPUT_ACTION_PAUSE) ||
+        IsInputActionPressed(INPUT_ACTION_CANCEL))
     {
-        game.newLevelTimer = 0;
-        game.rockCountStartOfLevel += (currentLevel % 2)? 1 : 2;
-        game.ship.safeRespawnTimer = SHIP_SAFE_TIME;
-        game.ship.velocity = (Vector2){ 0, 0 };
+        game.isPaused = !game.isPaused;
+        if (game.isPaused)
+            ChangeUiMenu(UI_MENU_PAUSE);
+        else
+            ui.currentMenu = UI_MENU_GAMEPLAY;
+        PlaySound(game.beeps[BEEP_MENU]);
     }
 
-    for (unsigned int i = 0; i < game.rockCountStartOfLevel; i++)
+    if (!game.isPaused && game.delayTimer > EPSILON)
+        game.delayTimer -= game.frameTime;
+    if (!game.isPaused && game.newLevelTimer > EPSILON)
+        game.newLevelTimer -= game.frameTime;
+
+    bool noMessageDisplayed = (game.newLevelTimer < EPSILON);
+    if (!game.isPaused && (noMessageDisplayed || game.delayTimer > 0))
     {
-        unsigned int rockIdx = CreateAsteroidRandom(ASTEROID_SIZE_BIG);
-        Asteroid *newRock = &game.rocks[rockIdx];
-        newRock->isAtScreenEdge = IsCircleOnEdge(newRock->position, newRock->radius);
+        // Game Over
+        bool inputCooldownFinished = (SHIP_RESPAWN_TIME - game.ship.respawnTimer >= GAMEOVER_INPUT_COOLDOWN);
+        if (game.lives == 0 && inputCooldownFinished)
+        {
+            if (IsInputActionPressed(INPUT_ACTION_CONFIRM) || IsGestureDetected(GESTURE_TAP))
+            {
+                PollInputEvents(); // Skip input this frame
+                InitNewLevel(1);
+            }
+        }
+
+        // Update rocks
+        for (unsigned int i = 0; i < game.rockCount; i++)
+            UpdateAsteroid(i);
+
+        // Update bullets
+        for (unsigned int i = 0; i < MISSILE_MAX; i++)
+            UpdateMissile(&game.ship.missiles[i]);
+
+        // Update ship
+        UpdateShip(&game.ship);
     }
 
+    // Update user interface elements and logic
+    UpdateUiFrame();
+}
+
+// void UpdateTimers(void)
+// {
+// }
+
+void DrawGameFrame(void)
+{
+    // Draw stars
+    for (unsigned int i = 0; i < STAR_AMOUNT; i++)
+        DrawCircleV(game.stars[i], 1.0f, WHITE);
+
+    // Draw rocks
+    for (unsigned int i = 0; i < game.rockCount; i++)
+    {
+        Asteroid *rock = &game.rocks[i];
+        if (!rock->exploded)
+            DrawAsteroid(i);
+    }
+
+    // Draw missiles
     for (unsigned int i = 0; i < MISSILE_MAX; i++)
     {
-        game.ship.missiles[i].exploded = true;
-        game.ship.missiles[i].explosionTimer = 0;
+        Missile *shot = &game.ship.missiles[i];
+        if (!shot->exploded)
+            DrawMissile(shot);
+        else if (shot->explosionTimer > EPSILON)
+            DrawCircleV(shot->position, shot->radius*5, Fade(RED, 0.5f));
     }
-    ui.textFade = 1.0f;
+
+    // Draw ship
+    if (!game.ship.exploded)
+        DrawShip(&game.ship);
+    else if (game.ship.explosionTimer > EPSILON)
+        DrawCircleV(game.ship.position, game.ship.length, Fade(RED, 0.5f));
+
+    // Draw user interface elements
+    DrawUiFrame();
 }
 
-Color ColorBrightnessVariation(Color color)
-{
-    float brightness = -0.25f*GetRandomValue(0, 2); // 3 main shades
-    brightness += 0.01f*GetRandomValue(1, 10); // sub-shades
-    color = ColorBrightness(color, brightness);
-    return color;
-}
+// Collision
+// ----------------------------------------------------------------------------
 
 bool IsShipOnEdge(SpaceShip *ship)
 {
@@ -239,57 +339,6 @@ bool CheckCollisionAsteroidShip(unsigned int rockIdx, SpaceShip *ship)
     return false;
 }
 
-void UpdateGameFrame(void)
-{
-    // Detect win state and go to next level
-    if (game.rockCount == game.eliminatedCount)
-        InitLevel(game.level + 1);
-
-    // Pause
-    if (IsInputActionPressed(INPUT_ACTION_PAUSE) ||
-        IsInputActionPressed(INPUT_ACTION_CANCEL))
-    {
-        game.isPaused = !game.isPaused;
-        if (game.isPaused)
-            ChangeUiMenu(UI_MENU_PAUSE);
-        else
-            ui.currentMenu = UI_MENU_GAMEPLAY;
-        PlaySound(game.beeps[BEEP_MENU]);
-    }
-
-    if (!game.isPaused && game.newLevelTimer < NEW_LEVEL_TIMER)
-        game.newLevelTimer += game.frameTime;
-
-    // Only update while unpaused
-    if (!game.isPaused && game.newLevelTimer > NEW_LEVEL_TIMER)
-    {
-        // Game Over
-        bool inputCooldownFinished = (SHIP_RESPAWN_TIME - game.ship.respawnTimer >= GAMEOVER_INPUT_COOLDOWN);
-        if (game.lives == 0 && inputCooldownFinished)
-        {
-            if (IsInputActionPressed(INPUT_ACTION_CONFIRM) || IsGestureDetected(GESTURE_TAP))
-            {
-                PollInputEvents(); // Skip input this frame
-                InitLevel(1);
-            }
-        }
-
-        // Update rocks
-        for (unsigned int i = 0; i < game.rockCount; i++)
-            UpdateAsteroid(i);
-
-        // Update bullets
-        for (unsigned int i = 0; i < MISSILE_MAX; i++)
-            UpdateMissile(&game.ship.missiles[i]);
-
-        // Update ship
-        UpdateShip(&game.ship);
-    }
-
-    // Update user interface elements and logic
-    UpdateUiFrame();
-}
-
 void WrapPastEdge(Vector2 *position)
 {
     if (position->x < 0)            // past left edge
@@ -300,38 +349,4 @@ void WrapPastEdge(Vector2 *position)
         position->y += VIRTUAL_HEIGHT;
     if (position->y > VIRTUAL_HEIGHT) // past bottom edge
         position->y -= VIRTUAL_HEIGHT;
-}
-
-void DrawGameFrame(void)
-{
-    // Draw stars
-    for (unsigned int i = 0; i < STAR_AMOUNT; i++)
-        DrawCircleV(game.stars[i], 1.0f, WHITE);
-
-    // Draw rocks
-    for (unsigned int i = 0; i < game.rockCount; i++)
-    {
-        Asteroid *rock = &game.rocks[i];
-        if (!rock->exploded)
-            DrawAsteroid(i);
-    }
-
-    // Draw missiles
-    for (unsigned int i = 0; i < MISSILE_MAX; i++)
-    {
-        Missile *shot = &game.ship.missiles[i];
-        if (!shot->exploded)
-            DrawMissile(shot);
-        else if (shot->explosionTimer > EPSILON)
-            DrawCircleV(shot->position, shot->radius*5, Fade(RED, 0.5f));
-    }
-
-    // Draw ship
-    if (!game.ship.exploded)
-        DrawShip(&game.ship);
-    else if ((SHIP_RESPAWN_TIME - game.ship.respawnTimer) < EXPLOSION_TIME)
-        DrawCircleV(game.ship.position, game.ship.length, Fade(RED, 0.5f));
-
-    // Draw user interface elements
-    DrawUiFrame();
 }

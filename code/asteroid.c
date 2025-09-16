@@ -59,6 +59,14 @@ unsigned int CreateAsteroidRandom(SizeOfAsteroid size)
     return rockIdx;
 }
 
+Color ColorBrightnessVariation(Color color)
+{
+    float brightness = -0.25f*GetRandomValue(0, 2); // 3 main shades
+    brightness += 0.01f*GetRandomValue(1, 10); // sub-shades
+    color = ColorBrightness(color, brightness);
+    return color;
+}
+
 void SplitAsteroid(unsigned int rockIdx)
 {
     Asteroid *rock = &game.rocks[rockIdx];

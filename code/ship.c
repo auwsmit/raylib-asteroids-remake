@@ -10,7 +10,11 @@ void UpdateShip(SpaceShip *ship)
     // Update timers
     if (ship->exploded)
     {
-        ship->respawnTimer -= game.frameTime;
+        ship->explosionTimer -= game.frameTime;
+        if (game.delayTimer < EPSILON)
+        {
+            ship->respawnTimer -= game.frameTime;
+        }
 
         // Respawn
         if ((ship->respawnTimer <= EPSILON) && (game.lives > 0))
@@ -90,7 +94,8 @@ void UpdateShip(SpaceShip *ship)
         Asteroid *rock = &game.rocks[i];
         if (!rock->exploded && CheckCollisionAsteroidShip(i, &game.ship))
         {
-            game.ship.exploded = true;
+            ship->exploded = true;
+            ship->explosionTimer = EXPLOSION_TIME;
             rock->exploded = true;
             SplitAsteroid(i);
             game.eliminatedCount++;
@@ -100,6 +105,8 @@ void UpdateShip(SpaceShip *ship)
     if (game.ship.exploded)
     {
         game.lives--;
+        if (game.lives > 0)
+            game.delayTimer = 2.0f;
         ui.textFade = 1.0f; // for respawn message
     }
 }
@@ -178,7 +185,7 @@ void ShootMissile(SpaceShip *ship)
     shot->exploded = false;
     shot->explosionTimer = EXPLOSION_TIME;
     shot->angle = ship->rotation + 180;
-    Vector2 spawnPos = { 0, ship->length/2 + shot->radius*3 };
+    Vector2 spawnPos = { 0, ship->length*0.6f + shot->radius };
     spawnPos = Vector2Rotate(spawnPos, shot->angle*DEG2RAD);
     spawnPos = Vector2Add(spawnPos, ship->position);
     shot->position = spawnPos;
