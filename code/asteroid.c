@@ -9,6 +9,7 @@ unsigned int CreateAsteroid(SizeOfAsteroid size, Vector2 position, float angle, 
     game.rocks = MemRealloc(game.rocks, game.rockCount*sizeof(Asteroid));
     unsigned int rockIdx = game.rockCount - 1;
     Asteroid *rock = &game.rocks[rockIdx];
+    *rock = (Asteroid){ 0 };
     rock->exploded = false;
     rock->color = color;
 
@@ -20,6 +21,10 @@ unsigned int CreateAsteroid(SizeOfAsteroid size, Vector2 position, float angle, 
         rock->radius = ASTEROID_RADIUS_MEDIUM;
     else if (size == ASTEROID_SIZE_SMALL)
         rock->radius = ASTEROID_RADIUS_SMALL;
+    unsigned int newRockAdd = 1;
+    for (int i = rock->size; i >= 0; i--)
+        newRockAdd *= 2;
+    game.rockLimit += newRockAdd;
 
     // position & angle
     rock->position = position;
@@ -73,7 +78,7 @@ void SplitAsteroid(unsigned int rockIdx)
     float angle = (float)GetRandomValue(0, 180);
     Vector2 spawnPosA = { 0, rock->radius/2 };
     spawnPosA = Vector2Rotate(spawnPosA, angle*DEG2RAD);
-    Vector2 spawnPosB = Vector2Invert(spawnPosA);
+    Vector2 spawnPosB = Vector2Negate(spawnPosA);
     spawnPosA = Vector2Add(spawnPosA, rock->position);
     spawnPosB = Vector2Add(spawnPosB, rock->position);
 
@@ -83,6 +88,10 @@ void SplitAsteroid(unsigned int rockIdx)
         Color splitColor = rock->color;
         CreateAsteroid(splitSize, spawnPosA, angle, splitColor);
         CreateAsteroid(splitSize, spawnPosB, angle + 180, splitColor);
+        unsigned int splitRocksAdd = 1;
+        for (int i = splitSize + 1; i >= 0; i--)
+            splitRocksAdd *= 2;
+        game.rockLimit -= splitRocksAdd;
     }
 }
 

@@ -13,14 +13,14 @@
 #define UI_TITLE_SIZE        150   // title font size
 #define UI_TITLE_BUTTON_SIZE 80    // title menu button font size
 #define UI_CURSOR_SIZE       20.0f // cursor triangle size
-#define UI_FONT_SIZE_CENTER  140   // text at center of screen font size
-#define UI_FONT_SIZE_EDGE    50    // text at top of screen font size
+#define UI_FONT_SIZE_CENTER  140   // center of screen font size
+#define UI_FONT_SIZE_EDGE    50    // top of screen font size
 
 // UI spacing
 #define UI_TITLE_TOP_PADDING 180 // space from the top of the screen
 #define UI_TITLE_SPACING     200 // space between the first option and title text
 #define UI_BUTTON_SPACING    50  // space between each button
-#define UI_EDGE_PADDING      50  // padding between UI and edge of screen
+#define UI_EDGE_PADDING      50  // space from screen edges
 
 // Types and Structures
 // ----------------------------------------------------------------------------
@@ -91,5 +91,6 @@ void DrawUiFrame(void); // Draws the menu for the current frame
 void DrawUiElement(UiButton *button);
 void DrawUiCursor(UiButton *selected); // Draw the cursor at the given button
 void DrawLives(void);
+void DrawCenterText(void);
 
 #endif // ASTEROIDS_MENU_HEADER_GUARD

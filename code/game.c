@@ -61,7 +61,6 @@ void InitGameState(void)
 
         .level = 1,
         .lives = STARTING_LIVES,
-        .rockCountStartOfLevel = ASTEROID_AMOUNT_LVL1,
     };
 
     // Generate random stars
@@ -96,23 +95,31 @@ void InitNewLevel(unsigned int newLevel)
     game.newLevelTimer = NEW_LEVEL_TIMER;
     if (newLevel == 1)
     {
-        game.rockCountStartOfLevel = ASTEROID_AMOUNT_LVL1;
+        game.rockCountStartOfLevel = LVL1_ASTEROID_AMOUNT;
+        game.ship.position = (Vector2){ VIRTUAL_WIDTH/2, VIRTUAL_HEIGHT/2 };
+        // game.ship.respawnTimer = 0.0f;
         UpdateShipTriangles(&game.ship);
     }
     else
     {
-        game.rockCountStartOfLevel += (newLevel % 2)? 1 : 2;
+        unsigned int rc = LVL1_ASTEROID_AMOUNT;
+        for (unsigned int i = 2; i <= game.level; i++)
+        {
+            rc += (i % 2)? 1 : 2;
+        }
+        game.rockCountStartOfLevel = rc;
         game.ship.safeRespawnTimer = SHIP_SAFE_TIME;
         game.ship.velocity = (Vector2){ 0, 0 };
     }
-    game.rockLimit = game.rockCountStartOfLevel*2*2*2 - game.rockCountStartOfLevel;
 
+    game.rockLimit = 0;
     for (unsigned int i = 0; i < game.rockCountStartOfLevel; i++)
     {
         unsigned int rockIdx = CreateAsteroidRandom(ASTEROID_SIZE_BIG);
         Asteroid *newRock = &game.rocks[rockIdx];
         newRock->isAtScreenEdge = IsCircleOnEdge(newRock->position, newRock->radius);
     }
+    game.rockLimit -= game.rockCountStartOfLevel;
 
     for (unsigned int i = 0; i < MISSILE_MAX; i++)
     {
@@ -194,11 +201,19 @@ void UpdateGameFrame(void)
     if (IsInputActionPressed(INPUT_ACTION_PAUSE) ||
         IsInputActionPressed(INPUT_ACTION_CANCEL))
     {
+        static float previousTextFade = 0.0f;
         game.isPaused = !game.isPaused;
         if (game.isPaused)
+        {
             ChangeUiMenu(UI_MENU_PAUSE);
+            previousTextFade = ui.textFade;
+            ui.textFade = 1.0f;
+        }
         else
+        {
             ui.currentMenu = UI_MENU_GAMEPLAY;
+            ui.textFade = previousTextFade;
+        }
         PlaySound(game.beeps[BEEP_MENU]);
     }
 

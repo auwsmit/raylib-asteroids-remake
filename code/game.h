@@ -16,13 +16,13 @@
 #define EXPLOSION_TIME 0.4f
 #define NEW_LEVEL_TIMER 1.5f
 #define GAMEOVER_INPUT_COOLDOWN 1.0f
-#define ASTEROID_AMOUNT_LVL1 2
+#define LVL1_ASTEROID_AMOUNT 2
 
 // Types and Structures
 // ----------------------------------------------------------------------------
 
 typedef enum ScreenState {
-    SCREEN_LOGO, SCREEN_TITLE, SCREEN_GAMEPLAY, SCREEN_ENDING
+    SCREEN_LOGO, SCREEN_TITLE, SCREEN_GAMEPLAY
 } ScreenState;
 
 typedef enum GameMode {
@@ -38,7 +38,6 @@ typedef struct GameState {
     Camera2D camera;
     SpaceShip ship;
     Asteroid *rocks;
-    // GameMode currentMode;
     Vector2 stars[STAR_AMOUNT];
     Vector2 shipTriangle[3];
     Vector2 jetTriangle[3];
@@ -53,8 +52,6 @@ typedef struct GameState {
     float frameTime;
     float delayTimer;
     float newLevelTimer;
-    // unsigned int scoreL;
-    // unsigned int scoreR;
     bool isPaused;
     bool levelFinished;
     bool gameShouldExit;
@@ -68,7 +65,7 @@ extern GameState game; // global declaration
 // Initialization
 void InitGameState(void); // Initialize game data and allocate memory for beeps
 void InitNewLevel(unsigned int newLevel);
-Sound GenBeep(float freq, float lengthSec); // Generate and allocate memory a sine wave buffer for a beep
+Sound GenBeep(float freq, float lengthSec); // Generate and allocate memory for a sine wave buffer
 void FreeGameState(void); // Free any allocated memory within game state
 
 // Update & Draw

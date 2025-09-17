@@ -106,7 +106,7 @@ void UpdateShip(SpaceShip *ship)
     {
         game.lives--;
         if (game.lives > 0)
-            game.delayTimer = 2.0f;
+            game.delayTimer = 3.0f;
         ui.textFade = 1.0f; // for respawn message
     }
 }

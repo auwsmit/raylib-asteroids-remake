@@ -324,9 +324,8 @@ void ChangeUiMenu(UiMenuState newMenu)
 
     else if (newMenu == UI_MENU_GAMEPLAY)
     {
-        // game.currentMode = (GameMode)ui.selectedId;
         game.currentScreen = SCREEN_GAMEPLAY;
-        InitNewLevel(1);
+        InitNewLevel(game.level);
     }
 
     ui.currentMenu = newMenu;
@@ -335,18 +334,20 @@ void ChangeUiMenu(UiMenuState newMenu)
 
 void DrawUiFrame(void)
 {
-    if (game.currentScreen == SCREEN_TITLE)
+    // Interactive menus and buttons
+    // ----------------------------------------------------------------------------
+    if (game.currentScreen == SCREEN_TITLE) // Title menu
     {
         // Draw stars
         for (unsigned int i = 0; i < STAR_AMOUNT; i++)
             DrawCircleV(game.stars[i], 1.0f, WHITE);
 
-        // Draw title menu
+        // Draw title text
         for (unsigned int i = 0; i < ARRAY_SIZE(ui.title); i++)
             DrawUiElement(&ui.title[i]);
     }
 
-    if (ui.currentMenu != UI_MENU_GAMEPLAY)
+    if (ui.currentMenu != UI_MENU_GAMEPLAY) // Draw non-gameplay menu
     {
         UiMenu *menu = &ui.menus[ui.currentMenu];
         for (unsigned int i = 0; i < menu->buttonCount; i++)
@@ -363,10 +364,10 @@ void DrawUiFrame(void)
             DrawUiCursor(&ui.pause);
     }
 
+    // Non-interactive UI elements
+    // ----------------------------------------------------------------------------
     if (game.currentScreen == SCREEN_GAMEPLAY)
     {
-        // DrawUiScores();
-
         DrawLives();
 
         // Draw level indicator
@@ -376,68 +377,29 @@ void DrawUiFrame(void)
                  VIRTUAL_WIDTH - textLength - UI_EDGE_PADDING, UI_EDGE_PADDING,
                  UI_FONT_SIZE_EDGE, RAYWHITE);
 
-
-        // Fade animation
-        Color fadeColor = Fade(RAYWHITE, ui.textFade);
-
-        // Draw messages depending on game state
-        bool centerText = false;
-        const char *text;
-        if (game.isPaused)
+        // 10 asteroids or less text
+        int totalRocksRemaining = game.rockLimit - game.eliminatedCount;
+        if (totalRocksRemaining <= 10)
         {
-            text = "PAUSED";
-            centerText = true;
+            const char* remainText = TextFormat("%2i Remaining", totalRocksRemaining);
+            int textOffset = MeasureText(remainText, UI_FONT_SIZE_EDGE)/2;
+            DrawText(remainText,
+                     VIRTUAL_WIDTH/2 - textOffset, UI_EDGE_PADDING,
+                     UI_FONT_SIZE_EDGE, RAYWHITE);
         }
 
-        else if (game.lives <= 0)
-        {
-            text = "GAME OVER";
-            centerText = true;
-        }
-        else if (game.levelFinished)
-        {
-            text = "ASTEROIDS CLEARED";
-            centerText = true;
-        }
-        else if (game.newLevelTimer > EPSILON)
-        {
-            if (game.level == 1)
-                text = "GAME START";
-            else
-                text = TextFormat("LEVEL %i", game.level);
-            centerText = true;
-        }
-        else if (game.ship.exploded && game.ship.respawnTimer < SHIP_RESPAWN_TIME)
-        {
-            text = "RESPAWNING...";
-            centerText = true;
-        }
-
-        if (game.delayTimer > EPSILON && !game.levelFinished)
-        {
-            centerText = false;
-            ui.textFade = 1.0f;
-        }
-
-        if (centerText)
-        {
-            int textOffset = MeasureText(text, UI_FONT_SIZE_CENTER)/2;
-            DrawText(text, VIRTUAL_WIDTH/2 - textOffset,
-                     VIRTUAL_HEIGHT/2 - UI_FONT_SIZE_CENTER/2,
-                     UI_FONT_SIZE_CENTER, fadeColor);
-        }
+        // Draw center text (pause, game over, etc)
+        DrawCenterText();
     }
 
     // Debug:
-    const int textSize = 50;
-    int textY = 100;
-    DrawText(TextFormat("%2i rock total", game.rockLimit), 0, textY, textSize, RAYWHITE);
-    textY += textSize;
-    DrawText(TextFormat("%2i remaining", game.rockLimit - game.eliminatedCount), 0, textY, textSize, RAYWHITE);
+    // const int textSize = 50;
+    // int textY = 100;
+    // DrawText(TextFormat("%2i rock total", game.rockLimit), 0, textY, textSize, RAYWHITE);
     // textY += textSize;
-    // DrawText(TextFormat("speed: %2.2f", Vector2Length(game.ship.velocity)), 0, textY, textSize, RAYWHITE);
+    // DrawText(TextFormat("%2i remaining", game.rockLimit - game.eliminatedCount), 0, textY, textSize, RAYWHITE);
     // textY += textSize;
-    // DrawText(TextFormat("level timer: %2.2f", (game.newLevelTimer)), 0, textY, textSize, RAYWHITE);
+    // DrawText(TextFormat("speed: %3.0f", Vector2Length(game.ship.velocity)), 0, textY, textSize, RAYWHITE);
 }
 
 void DrawUiElement(UiButton *button)
@@ -462,7 +424,7 @@ void DrawUiCursor(UiButton *selectedButton)
 
 void DrawLives(void)
 {
-    float scale = 0.75f;
+    float scale = 0.75f; // compared to actual ship
     float spacing = game.ship.width/6;
     Vector2 lifeTriangle[3] = {
         Vector2Scale(game.shipTriangle[0], scale),
@@ -483,5 +445,60 @@ void DrawLives(void)
             lifeTriangle[j].x += spacing + game.ship.width*scale;
         }
         DrawTriangle(lifeTriangle[0], lifeTriangle[1], lifeTriangle[2], GRAY);
+    }
+}
+
+void DrawCenterText(void)
+{
+    bool centerText = false;
+    const char *text;
+    Color fadeColor = Fade(RAYWHITE, ui.textFade);
+
+    if (game.isPaused)
+    {
+        text = "PAUSED";
+        centerText = true;
+    }
+    else if (game.lives <= 0)
+    {
+        text = "GAME OVER";
+        centerText = true;
+    }
+    else if (game.levelFinished)
+    {
+        text = "ASTEROIDS CLEARED";
+        centerText = true;
+    }
+    else if (game.newLevelTimer > EPSILON)
+    {
+        if (game.level == 1)
+            text = "GAME START";
+        else
+            text = TextFormat("LEVEL %i", game.level);
+        centerText = true;
+    }
+    else if (game.ship.exploded)
+    {
+        if (game.ship.respawnTimer < SHIP_RESPAWN_TIME)
+            text = "RESPAWNING...";
+        else if (game.lives == 1)
+            text = TextFormat("%i LIFE LEFT!", game.lives);
+        else
+            text = TextFormat("%i LIVES LEFT", game.lives);
+        centerText = true;
+    }
+
+    if (game.delayTimer > EPSILON && !game.levelFinished && !game.ship.exploded)
+    {
+        centerText = false;
+        ui.textFade = 1.0f;
+    }
+
+    if (centerText)
+    {
+        int textOffset = MeasureText(text, UI_FONT_SIZE_CENTER)/2;
+        DrawText(text, VIRTUAL_WIDTH/2 - textOffset,
+                 VIRTUAL_HEIGHT/2 - UI_FONT_SIZE_CENTER/2,
+                 UI_FONT_SIZE_CENTER, fadeColor);
     }
 }
