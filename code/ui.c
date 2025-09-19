@@ -21,32 +21,33 @@ void InitUiState(void)
         .firstFrame = true,
     };
 
+    uiDefaults.title[0] = InitUiTitle("Asteroids");
+    uiDefaults.title[1] = InitUiTitle("Remake");
+
     // Title menu buttons
     UiMenu *titleMenu = &uiDefaults.menus[UI_MENU_TITLE];
 
-    uiDefaults.title[0] = InitUiTitle("Asteroids");
-    uiDefaults.title[1] = InitUiTitle("Remake");
+    float startPosX = VIRTUAL_WIDTH/2 - (float)MeasureText("Start", UI_TITLE_BUTTON_SIZE)/2;
+    float startPosY = uiDefaults.title[1].position.y + uiDefaults.title[1].fontSize;
+    startPosY += UI_TITLE_SPACING;
+    CreateUiMenuButton("Start", UI_TITLE_BUTTON_SIZE, startPosX, startPosY, titleMenu);
 #if !defined(PLATFORM_WEB)
-    UiButton *start =
-#endif
-        InitUiMenuButtonRelative("Start", UI_TITLE_BUTTON_SIZE, &uiDefaults.title[1], UI_TITLE_SPACING, titleMenu);
-#if !defined(PLATFORM_WEB)
-    InitUiMenuButtonRelative("Exit", UI_TITLE_BUTTON_SIZE, start, UI_BUTTON_SPACING, titleMenu);
+    CreateUiMenuButtonRelative("Exit", UI_TITLE_BUTTON_SIZE, UI_BUTTON_SPACING, titleMenu);
 #endif
 
     // Pause button + menu
     UiMenu *pauseMenu = &uiDefaults.menus[UI_MENU_PAUSE];
-    char *pauseText = "Pause";
-    char *resumeText = "Resume";
-    char *toTitleText = "Back to Title";
-    const int pauseTextLength = MeasureText(pauseText, UI_FONT_SIZE_EDGE);
+    float pausePosX = UI_EDGE_PADDING;
+    float pausePosY = (float)VIRTUAL_HEIGHT - UI_FONT_SIZE_EDGE - UI_EDGE_PADDING;
     uiDefaults.pause =
-        InitUiButton(pauseText, UI_FONT_SIZE_EDGE,
-                     (float)VIRTUAL_WIDTH/4 - pauseTextLength/2,
-                     (float)VIRTUAL_HEIGHT - UI_FONT_SIZE_EDGE - UI_EDGE_PADDING);
+        InitUiButton("Pause", UI_FONT_SIZE_EDGE, pausePosX, pausePosY);
 
-    InitUiMenuButtonRelative(resumeText, UI_FONT_SIZE_EDGE, &uiDefaults.pause, -UI_FONT_SIZE_EDGE, pauseMenu);
-    InitUiMenuButtonRelative(toTitleText, UI_FONT_SIZE_EDGE, &uiDefaults.pause, -UI_FONT_SIZE_EDGE*2 - UI_BUTTON_SPACING, pauseMenu);
+    int resumeTextLength = MeasureText("Resume", UI_FONT_SIZE_EDGE);
+    float resumePosX = (float)VIRTUAL_WIDTH/2 - resumeTextLength/2;
+    float resumePosY = (float)VIRTUAL_HEIGHT/2 + UI_FONT_SIZE_EDGE + UI_BUTTON_SPACING*2;
+    CreateUiMenuButton("Resume", UI_FONT_SIZE_EDGE,
+                       resumePosX, resumePosY, pauseMenu);
+    CreateUiMenuButtonRelative("Back to Title", UI_FONT_SIZE_EDGE, UI_BUTTON_SPACING, pauseMenu);
 
     ui = uiDefaults;
 }
@@ -74,13 +75,12 @@ UiButton InitUiTitle(char *text)
 
 UiButton InitUiButton(char *text, int fontSize, float textPosX, float textPosY)
 {
-
     UiButton button = { text, fontSize, false, { textPosX, textPosY }, RAYWHITE };
 
     return button;
 }
 
-UiButton *InitUiMenuButton(char *text, int fontSize, float textPosX, float textPosY, UiMenu *menu)
+UiButton *CreateUiMenuButton(char *text, int fontSize, float textPosX, float textPosY, UiMenu *menu)
 {
     UiButton button = { text, fontSize, false, { textPosX, textPosY }, RAYWHITE };
     menu->buttonCount++;
@@ -90,14 +90,15 @@ UiButton *InitUiMenuButton(char *text, int fontSize, float textPosX, float textP
     return &menu->buttons[menu->buttonCount - 1];
 }
 
-UiButton *InitUiMenuButtonRelative(char* text, int fontSize, UiButton *originButton, float offsetY, UiMenu *menu)
+UiButton *CreateUiMenuButtonRelative(char* text, int fontSize, float offsetY, UiMenu *menu)
 {
+    UiButton *originButton = &menu->buttons[menu->buttonCount - 1];
     float originWidth = (float)MeasureText(originButton->text, originButton->fontSize);
     float originPosX = (originButton->position.x + originWidth/2);
     float textPosX = originPosX - MeasureText(text, fontSize)/2;
     float textPosY = originButton->position.y + originButton->fontSize;
 
-    return InitUiMenuButton(text, fontSize, textPosX, textPosY + offsetY, menu);
+    return CreateUiMenuButton(text, fontSize, textPosX, textPosY + offsetY, menu);
 }
 
 void FreeUiState(void)
@@ -236,10 +237,12 @@ void UpdateUiButtonMouseHover(UiButton *button)
         if (!button->mouseHovered)
             PlaySound(game.beeps[BEEP_MENU]);
         button->mouseHovered = true;
+        ui.mouseInUse = true;
     }
     else
     {
         button->mouseHovered = false;
+        ui.mouseInUse = false;
     }
 }
 

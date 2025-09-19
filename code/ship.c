@@ -8,19 +8,17 @@
 void UpdateShip(SpaceShip *ship)
 {
     // Update timers
+    // ----------------------------------------------------------------------------
+
     if (ship->exploded)
     {
         ship->explosionTimer -= game.frameTime;
         if (game.delayTimer < EPSILON)
-        {
             ship->respawnTimer -= game.frameTime;
-        }
 
         // Respawn
         if ((ship->respawnTimer <= EPSILON) && (game.lives > 0))
-        {
             RespawnShip(ship);
-        }
 
         // do not update, ship has exploded
         return;
@@ -29,9 +27,14 @@ void UpdateShip(SpaceShip *ship)
         ship->safeRespawnTimer -= game.frameTime;
 
     // Player Input
+    // ----------------------------------------------------------------------------
+
+    // check if mouse is over an interactive UI element
+    bool isMouseLeftValid = (IsMouseButtonDown(MOUSE_LEFT_BUTTON) && !ui.mouseInUse);
+    bool isInputActionValid = isMouseLeftValid || !IsMouseButtonDown(MOUSE_LEFT_BUTTON);
+
     // Rotate (mouse)
-    if ((Vector2Length(GetMouseDelta()) != 0) ||
-        IsMouseButtonDown(MOUSE_LEFT_BUTTON) || IsMouseButtonDown(MOUSE_RIGHT_BUTTON))
+    if ((Vector2Length(GetMouseDelta()) != 0) || IsMouseButtonDown(MOUSE_RIGHT_BUTTON) || isMouseLeftValid)
     {
         Vector2 mousePos = GetScaledMousePosition();
         Vector2 mouseDirection = Vector2Subtract(mousePos, ship->position);
@@ -59,7 +62,8 @@ void UpdateShip(SpaceShip *ship)
     else if (ship->isThrusting)
         ship->isThrusting = false;
 
-    if (IsInputActionDown(INPUT_ACTION_SHOOT))
+    // Shoot missile
+    if (IsInputActionDown(INPUT_ACTION_SHOOT) && isInputActionValid)
     {
         if (ship->autoFireTimer == 0)
         {
@@ -74,6 +78,9 @@ void UpdateShip(SpaceShip *ship)
     else if (ship->autoFireTimer != 0)
         ship->autoFireTimer = 0;
 
+    // Calculate motion
+    // ----------------------------------------------------------------------------
+
     // Apply friction (smooth exponential decay)
     float slowdown = expf(-SHIP_SPACE_FRICTION/10*game.frameTime);
     ship->velocity = Vector2Scale(ship->velocity, slowdown);
@@ -81,11 +88,14 @@ void UpdateShip(SpaceShip *ship)
     // Update position
     Vector2 scaledVelocity = Vector2Scale(ship->velocity, game.frameTime);
     ship->position = Vector2Add(ship->position, scaledVelocity);
-
     UpdateShipTriangles(ship);
 
+    // Screen edge wrap
     ship->isAtScreenEdge = IsShipOnEdge(ship);
     WrapPastEdge(&ship->position);
+
+    // Collision
+    // ----------------------------------------------------------------------------
 
     // Check collision with asteroids
     if (ship->safeRespawnTimer > 0) return;

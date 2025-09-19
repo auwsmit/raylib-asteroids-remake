@@ -63,6 +63,7 @@ typedef struct UiState {
     bool firstFrame;
     bool lastSelectWithMouse;
     bool autoScroll;
+    bool mouseInUse; // whether or not the UI has precedence over mouse input
 } UiState;
 
 extern UiState ui; // global declaration
@@ -74,8 +75,8 @@ extern UiState ui; // global declaration
 void InitUiState(void); // Initializes the title screen and allocates memory for menu buttons
 UiButton InitUiTitle(char *text);
 UiButton InitUiButton(char *text, int fontSize, float textPosX, float textPosY);
-UiButton *InitUiMenuButton(char *text, int fontSize, float textPosX, float textPosY, UiMenu *menu);
-UiButton *InitUiMenuButtonRelative(char* text, int fontSize, UiButton *originButton, float offsetY, UiMenu *menu);
+UiButton *CreateUiMenuButton(char *text, int fontSize, float textPosX, float textPosY, UiMenu *menu); // Initializes a button within a menu
+UiButton *CreateUiMenuButtonRelative(char* text, int fontSize, float offsetY, UiMenu *menu); // Initializes
 void FreeUiState(void);
 
 // Update / User Input
