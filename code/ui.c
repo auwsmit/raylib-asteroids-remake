@@ -30,24 +30,32 @@ void InitUiState(void)
     float startPosX = VIRTUAL_WIDTH/2 - (float)MeasureText("Start", UI_TITLE_BUTTON_SIZE)/2;
     float startPosY = uiDefaults.title[1].position.y + uiDefaults.title[1].fontSize;
     startPosY += UI_TITLE_SPACING;
-    CreateUiMenuButton("Start", UI_TITLE_BUTTON_SIZE, startPosX, startPosY, titleMenu);
+    CreateUiMenuButton("Start", titleMenu, startPosX, startPosY, UI_TITLE_BUTTON_SIZE);
 #if !defined(PLATFORM_WEB)
-    CreateUiMenuButtonRelative("Exit", UI_TITLE_BUTTON_SIZE, UI_BUTTON_SPACING, titleMenu);
+    CreateUiMenuButtonRelative("Exit", titleMenu, UI_BUTTON_SPACING, UI_TITLE_BUTTON_SIZE);
 #endif
 
-    // Pause button + menu
+    // Pause menu
     UiMenu *pauseMenu = &uiDefaults.menus[UI_MENU_PAUSE];
-    float pausePosX = UI_EDGE_PADDING;
-    float pausePosY = (float)VIRTUAL_HEIGHT - UI_FONT_SIZE_EDGE - UI_EDGE_PADDING;
-    uiDefaults.pause =
-        InitUiButton("Pause", UI_FONT_SIZE_EDGE, pausePosX, pausePosY);
-
     int resumeTextLength = MeasureText("Resume", UI_FONT_SIZE_EDGE);
     float resumePosX = (float)VIRTUAL_WIDTH/2 - resumeTextLength/2;
     float resumePosY = (float)VIRTUAL_HEIGHT/2 + UI_FONT_SIZE_EDGE + UI_BUTTON_SPACING*2;
-    CreateUiMenuButton("Resume", UI_FONT_SIZE_EDGE,
-                       resumePosX, resumePosY, pauseMenu);
-    CreateUiMenuButtonRelative("Back to Title", UI_FONT_SIZE_EDGE, UI_BUTTON_SPACING, pauseMenu);
+    CreateUiMenuButton("Resume", pauseMenu, resumePosX, resumePosY, UI_FONT_SIZE_EDGE);
+    CreateUiMenuButtonRelative("Back to Title", pauseMenu, UI_BUTTON_SPACING, UI_FONT_SIZE_EDGE);
+
+    // // Pause button
+    // float pausePosX = UI_EDGE_PADDING + UI_BUTTON_PADDING;
+    // float pausePosY = (float)(VIRTUAL_HEIGHT - UI_FONT_SIZE_EDGE -
+    //                           UI_EDGE_PADDING - UI_BUTTON_PADDING);
+    // uiDefaults.pause = InitUiButton("Pause", UI_BID_PAUSE, pausePosX, pausePosY, UI_FONT_SIZE_EDGE);
+
+    // // Virtual input button (WIP)
+    // int flyTextLength = MeasureText("Fly", UI_FONT_SIZE_EDGE);
+    // float flyPosX = (float)(VIRTUAL_WIDTH - flyTextLength -
+    //                         UI_EDGE_PADDING - UI_BUTTON_PADDING);
+    // float flyPosY = (float)(VIRTUAL_HEIGHT - UI_FONT_SIZE_EDGE -
+    //                         UI_EDGE_PADDING - UI_BUTTON_PADDING);
+    // uiDefaults.fly = InitUiButton("Fly", UI_BID_SHOOT, flyPosX, flyPosY, UI_FONT_SIZE_EDGE);
 
     ui = uiDefaults;
 }
@@ -67,22 +75,29 @@ UiButton InitUiTitle(char *text)
     if (previousTitleLine != 0)
         titlePosY += UI_TITLE_SIZE + 10;
 
-    UiButton title = InitUiButton(text, fontSize, titlePosX, titlePosY);
+    UiButton title = InitUiButton(text, -1, titlePosX, titlePosY, fontSize);
     previousTitleLine = &title;
 
     return title;
 }
 
-UiButton InitUiButton(char *text, int fontSize, float textPosX, float textPosY)
+UiButton InitUiButton(char *text, int buttonId, float textPosX, float textPosY, int fontSize)
 {
-    UiButton button = { text, fontSize, false, { textPosX, textPosY }, RAYWHITE };
+    UiButton button = {
+        .text = text,
+        .buttonId = buttonId,
+        .fontSize = fontSize,
+        .mouseHovered = false,
+        .position = { textPosX, textPosY },
+        .color = RAYWHITE
+    };
 
     return button;
 }
 
-UiButton *CreateUiMenuButton(char *text, int fontSize, float textPosX, float textPosY, UiMenu *menu)
+UiButton *CreateUiMenuButton(char *text, UiMenu *menu, float textPosX, float textPosY, int fontSize)
 {
-    UiButton button = { text, fontSize, false, { textPosX, textPosY }, RAYWHITE };
+    UiButton button = InitUiButton(text, menu->buttonCount, textPosX, textPosY, fontSize);
     menu->buttonCount++;
     menu->buttons = MemRealloc(menu->buttons, menu->buttonCount*sizeof(UiButton));
     menu->buttons[menu->buttonCount - 1] = button;
@@ -90,7 +105,7 @@ UiButton *CreateUiMenuButton(char *text, int fontSize, float textPosX, float tex
     return &menu->buttons[menu->buttonCount - 1];
 }
 
-UiButton *CreateUiMenuButtonRelative(char* text, int fontSize, float offsetY, UiMenu *menu)
+UiButton *CreateUiMenuButtonRelative(char* text, UiMenu *menu, float offsetY, int fontSize)
 {
     UiButton *originButton = &menu->buttons[menu->buttonCount - 1];
     float originWidth = (float)MeasureText(originButton->text, originButton->fontSize);
@@ -98,7 +113,7 @@ UiButton *CreateUiMenuButtonRelative(char* text, int fontSize, float offsetY, Ui
     float textPosX = originPosX - MeasureText(text, fontSize)/2;
     float textPosY = originButton->position.y + originButton->fontSize;
 
-    return CreateUiMenuButton(text, fontSize, textPosX, textPosY + offsetY, menu);
+    return CreateUiMenuButton(text, menu, textPosX, textPosY + offsetY, fontSize);
 }
 
 void FreeUiState(void)
@@ -109,6 +124,7 @@ void FreeUiState(void)
 
 void UpdateUiFrame(void)
 {
+    // ui.mouseInUse = false;
     if (ui.currentMenu != UI_MENU_GAMEPLAY)
     {
         // Cancel/Back to main title menu
@@ -127,9 +143,13 @@ void UpdateUiFrame(void)
     }
     else if (!game.isPaused)
     {
-        // Input for single button selection
-        UpdateUiButtonMouseHover(&ui.pause);
-        UpdateUiButtonSelect(&ui.pause);
+        // // Pause button
+        // UpdateUiButtonMouseHover(&ui.pause);
+        // UpdateUiButtonSelect(&ui.pause);
+
+        // // Fly input button
+        // if (ui.mouseInUse == false)
+        //     UpdateUiButtonMouseHover(&ui.fly);
     }
 
     // Update text fade animation
@@ -234,8 +254,8 @@ void UpdateUiButtonMouseHover(UiButton *button)
 
     if (IsMouseWithinUiButton(mousePos, button))
     {
-        if (!button->mouseHovered)
-            PlaySound(game.beeps[BEEP_MENU]);
+        // if (!button->mouseHovered)
+        //     PlaySound(game.beeps[BEEP_MENU]);
         button->mouseHovered = true;
         ui.mouseInUse = true;
     }
@@ -254,8 +274,11 @@ void UpdateUiButtonSelect(UiButton *button)
     if (ui.currentMenu == UI_MENU_GAMEPLAY && IsGestureDetected(GESTURE_TAP) &&
          (!IsMouseButtonPressed(MOUSE_RIGHT_BUTTON) && IsMouseWithinUiButton(mousePos, button)))
     {
-        ChangeUiMenu(UI_MENU_PAUSE);
-        PlaySound(game.beeps[BEEP_MENU]);
+        if (button->buttonId == UI_BID_PAUSE)
+        {
+            ChangeUiMenu(UI_MENU_PAUSE);
+            PlaySound(game.beeps[BEEP_MENU]);
+        }
     }
 
     // Select a menu button
@@ -293,7 +316,7 @@ void UpdateUiButtonSelect(UiButton *button)
 
 bool IsMouseWithinUiButton(Vector2 mousePos, UiButton *button)
 {
-    int padding = 20; // extra clickable area around the text
+    int padding = UI_BUTTON_PADDING; // extra clickable area around the text
     int buttonWidth = MeasureText(button->text, button->fontSize);
     if ((mousePos.x >= button->position.x - padding) &&
         (mousePos.x <= button->position.x + buttonWidth + padding) &&
@@ -323,6 +346,7 @@ void ChangeUiMenu(UiMenuState newMenu)
     {
         game.isPaused = true;
         ui.selectedId = UI_BID_RESUME;
+        ui.pause.mouseHovered = false;
     }
 
     else if (newMenu == UI_MENU_GAMEPLAY)
@@ -337,9 +361,9 @@ void ChangeUiMenu(UiMenuState newMenu)
 
 void DrawUiFrame(void)
 {
-    // Interactive menus and buttons
+    // Title text and background
     // ----------------------------------------------------------------------------
-    if (game.currentScreen == SCREEN_TITLE) // Title menu
+    if (game.currentScreen == SCREEN_TITLE)
     {
         // Draw stars
         for (unsigned int i = 0; i < STAR_AMOUNT; i++)
@@ -350,24 +374,29 @@ void DrawUiFrame(void)
             DrawUiElement(&ui.title[i]);
     }
 
+    // Draw menus OR Individual buttons
+    // ----------------------------------------------------------------------------
     if (ui.currentMenu != UI_MENU_GAMEPLAY) // Draw non-gameplay menu
     {
+        UiButton *selectedButton = &ui.menus[ui.currentMenu].buttons[ui.selectedId];
+        DrawUiCursor(selectedButton);
+
         UiMenu *menu = &ui.menus[ui.currentMenu];
         for (unsigned int i = 0; i < menu->buttonCount; i++)
             DrawUiElement(&menu->buttons[i]);
-
-        UiButton *selectedButton = &ui.menus[ui.currentMenu].buttons[ui.selectedId];
-        DrawUiCursor(selectedButton);
     }
     else if (game.currentScreen == SCREEN_GAMEPLAY)
     {
         // Draw pause button
+        DrawUiOutline(&ui.pause);
         DrawUiElement(&ui.pause);
-        if (ui.pause.mouseHovered)
-            DrawUiCursor(&ui.pause);
+
+        // // Draw fly input button
+        // DrawUiOutline(&ui.fly);
+        // DrawUiElement(&ui.fly);
     }
 
-    // Non-interactive UI elements
+    // Gameplay UI
     // ----------------------------------------------------------------------------
     if (game.currentScreen == SCREEN_GAMEPLAY)
     {
@@ -423,6 +452,32 @@ void DrawUiCursor(UiButton *selectedButton)
                  selectPointPos,
                  Vector2Add(selectPointPos, (Vector2){ -size*2, -size }),
                  RAYWHITE);
+}
+
+void DrawUiOutline(UiButton *selectedButton)
+{
+    int padding         = UI_BUTTON_PADDING;
+    int outlineWidth    = 4;
+    int buttonWidth     = MeasureText(selectedButton->text, selectedButton->fontSize);
+    int buttonHeight    = selectedButton->fontSize;
+    int buttonPosX      = selectedButton->position.x - padding;
+    int buttonPosY      = selectedButton->position.y - padding;
+    int highlightWidth  = buttonWidth + padding * 2;
+    int highlightHeight = buttonHeight + padding * 2;
+
+    Color boxColor = RAYWHITE;
+    if (selectedButton->mouseHovered && IsMouseButtonDown(MOUSE_LEFT_BUTTON))
+        boxColor = ColorAlpha(RAYWHITE, 0.30f);
+    else
+        boxColor = ColorAlpha(RAYWHITE, 0.10f);
+
+    // outline box
+    DrawRectangleLinesEx((Rectangle){ buttonPosX, buttonPosY,
+                         highlightWidth, highlightHeight },
+                         outlineWidth, RAYWHITE);
+    // box around text
+    DrawRectangle(buttonPosX + outlineWidth, buttonPosY + outlineWidth,
+                  highlightWidth - outlineWidth*2, highlightHeight - outlineWidth*2, boxColor);
 }
 
 void DrawLives(void)

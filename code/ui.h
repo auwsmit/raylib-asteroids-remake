@@ -9,6 +9,8 @@
 // Macros
 // ----------------------------------------------------------------------------
 
+#define UI_BUTTON_PADDING 20
+
 // Size of UI elements
 #define UI_TITLE_SIZE        150   // title font size
 #define UI_TITLE_BUTTON_SIZE 80    // title menu button font size
@@ -33,12 +35,17 @@ typedef enum UiTitleMenuId {
     UI_BID_START, UI_BID_EXIT
 } UiTitleMenuId;
 
+typedef enum UiGameplayButtonId {
+    UI_BID_PAUSE, UI_BID_SHOOT
+} UiGameplayButtonId;
+
 typedef enum UiPauseMenuId {
     UI_BID_RESUME, UI_BID_BACKTOTITLE
 } UiPauseMenuId;
 
 typedef struct UiButton {
     const char *text;
+    int buttonId;
     int fontSize;
     bool mouseHovered;
     Vector2 position;
@@ -54,6 +61,7 @@ typedef struct UiMenu {
 typedef struct UiState {
     UiButton title[2]; // Title text
     UiButton pause;
+    // UiButton fly; // virtual input button
     UiMenu menus[3]; // title, difficulty, and pause menus
     float keyHeldTime;
     float textFade;            // tracks fade value over time
@@ -74,23 +82,25 @@ extern UiState ui; // global declaration
 // Initialize
 void InitUiState(void); // Initializes the title screen and allocates memory for menu buttons
 UiButton InitUiTitle(char *text);
-UiButton InitUiButton(char *text, int fontSize, float textPosX, float textPosY);
-UiButton *CreateUiMenuButton(char *text, int fontSize, float textPosX, float textPosY, UiMenu *menu); // Initializes a button within a menu
-UiButton *CreateUiMenuButtonRelative(char* text, int fontSize, float offsetY, UiMenu *menu); // Initializes
-void FreeUiState(void);
+UiButton InitUiButton(char *text, int buttonId, float textPosX, float textPosY, int fontSize);
+UiButton *CreateUiMenuButton(char *text, UiMenu *menu, float textPosX, float textPosY, int fontSize); // Initializes a button within a menu
+UiButton *CreateUiMenuButtonRelative(char* text, UiMenu *menu, float offsetY, int fontSize); // Initializes a button within a menu relative to the last menu button
+void FreeUiState(void); // Frees memory for all menu buttons
 
 // Update / User Input
 void UpdateUiFrame(void); // Updates the menu for the current frame
 void UpdateUiMenuTraverse(void); // Updates the cursor for movement by user input
 void UpdateUiButtonMouseHover(UiButton *button); // Draw cursor when mouse is over button
 void UpdateUiButtonSelect(UiButton *button); // Selects a button by user input
+// void UpdateUiVirtualInput(UiButton *button); // Selects a button by user input
 bool IsMouseWithinUiButton(Vector2 mousePos, UiButton *button);
 void ChangeUiMenu(UiMenuState newMenu); // Change from one menu to another
 
 // Draw
 void DrawUiFrame(void); // Draws the menu for the current frame
 void DrawUiElement(UiButton *button);
-void DrawUiCursor(UiButton *selected); // Draw the cursor at the given button
+void DrawUiCursor(UiButton *selectedButton); // Draw the cursor at the given button
+void DrawUiOutline(UiButton *selectedButton); // Draw a highlight box around a given button
 void DrawLives(void);
 void DrawCenterText(void);
 

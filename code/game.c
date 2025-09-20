@@ -38,7 +38,7 @@ void InitGameState(void)
 
         // Define shape of ship + jet
         .shipTriangle = {
-            (Vector2){ 0, -SHIP_LENGTH/2 },
+            (Vector2){  0, -SHIP_LENGTH/2 },
             (Vector2){ -SHIP_WIDTH/2, SHIP_WIDTH/2 },
             (Vector2){  SHIP_WIDTH/2, SHIP_WIDTH/2 },
         },
@@ -143,7 +143,12 @@ Sound GenBeep(float freq, float lengthSec)
     for (unsigned int i = 0; i < samples; i++)
     {
         float timeInSeconds = (float)i/sampleRate;
-        float sample = sinf(2.0f*PI*freq*timeInSeconds);
+
+        // sine wave
+        // float sample = sinf(2.0f*PI*freq*timeInSeconds);
+
+        // square wave
+        float sample = (fmodf(freq * timeInSeconds, 1.0f) < 0.5f) ? 1.0f : -1.0f;
 
         // Apply fade in/out
         float amplitude = 1.0f;
@@ -168,7 +173,7 @@ Sound GenBeep(float freq, float lengthSec)
     };
 
     Sound beep = LoadSoundFromWave(beepSoundWave);
-    SetSoundVolume(beep, 0.3f);
+    SetSoundVolume(beep, 0.25f);
 
     UnloadWave(beepSoundWave); // frees data
     return beep;
