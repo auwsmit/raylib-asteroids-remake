@@ -4,10 +4,13 @@
 #include "input.h"
 #include "raymath.h"
 #include "config.h"
+#include "game.h"
 
 // Global struct to track input key mappings
 InputMappings gameInput = { 0 };
 
+// Input Actions
+// ----------------------------------------------------------------------------
 void InitDefaultInputControls(void)
 {
     InputMappings defaultControls = {
@@ -30,8 +33,8 @@ void InitDefaultInputControls(void)
         // Player 1 controls
         .keyMaps[INPUT_ACTION_LEFT] =      { KEY_A, KEY_LEFT, },
         .keyMaps[INPUT_ACTION_RIGHT] =     { KEY_D, KEY_RIGHT, },
-        .keyMaps[INPUT_ACTION_FORWARD] =   { KEY_W, KEY_UP, },
-        .mouseMaps[INPUT_ACTION_FORWARD] = { MOUSE_RIGHT_BUTTON },
+        .keyMaps[INPUT_ACTION_THRUST] =    { KEY_W, KEY_UP, },
+        .mouseMaps[INPUT_ACTION_THRUST] =  { MOUSE_RIGHT_BUTTON },
         .keyMaps[INPUT_ACTION_SHOOT] =     { KEY_SPACE },
         .mouseMaps[INPUT_ACTION_SHOOT] =   { INPUT_MOUSE_LEFT_BUTTON },
     };
@@ -50,6 +53,10 @@ bool IsInputKeyModifier(KeyboardKey key)
 
 bool IsInputActionPressed(InputAction action)
 {
+    // Check virtual button
+    if (gameInput.virtualButtonMap[action] == true)
+        return true;
+
     KeyboardKey* keys = gameInput.keyMaps[action];
 
     // Check potential key combinations
@@ -94,6 +101,9 @@ bool IsInputActionPressed(InputAction action)
 
 bool IsInputActionDown(InputAction action)
 {
+    if (gameInput.virtualButtonMap[action] == true)
+        return true;
+
     KeyboardKey* keys = gameInput.keyMaps[action];
 
     for (unsigned int i = 0; i < INPUT_MAX_MAPS && keys[i] != 0; i++)
@@ -119,6 +129,14 @@ bool IsInputActionDown(InputAction action)
             return true;
     }
 
+    if (IsInputActionMouseDown(action))
+        return true;
+
+    return false;
+}
+
+bool IsInputActionMouseDown(InputAction action)
+{
     // Check mouse buttons
     MouseButton* mb = gameInput.mouseMaps[action];
     for (unsigned int i = 0; i < INPUT_MAX_MAPS && mb[i] != 0; i++)
@@ -134,16 +152,56 @@ bool IsInputActionDown(InputAction action)
     return false;
 }
 
+// Touch / Virtual Input
+// ----------------------------------------------------------------------------
+void SetVirtualInput(InputAction action, bool buttonPressed)
+{
+    gameInput.virtualButtonMap[action] = buttonPressed;
+}
+
+int CheckCollisionTouchCircle(Vector2 center, float radius)
+{
+    for (int i = 0; i < game.touchCount; ++i)
+    {
+        if (CheckCollisionPointCircle(game.touchPositions[i], center, radius))
+            return i;
+    }
+
+    return -1;
+}
+
+int CheckCollisionTouchRec(Rectangle rec)
+{
+    for (int i = 0; i < game.touchCount; ++i)
+    {
+        if (CheckCollisionPointRec(game.touchPositions[i], rec))
+            return i;
+    }
+
+    return -1;
+}
+
+// Helpers
+// ----------------------------------------------------------------------------
+
+int UpdateInputTouchPoints(void)
+{
+    int tCount = GetTouchPointCount();
+    game.touchCount = tCount;
+
+    if (tCount > INPUT_MAX_TOUCH_POINTS)
+        tCount = INPUT_MAX_TOUCH_POINTS;
+    for (int i = 0; i < tCount; ++i)
+    {
+        Vector2 touchPosition = GetScreenToWorld2D(GetTouchPosition(i), game.camera);
+        game.touchPositions[i] = touchPosition;
+    }
+
+    return tCount;
+}
+
 #define MIN(a, b) ((a)<(b)? (a) : (b))
 Vector2 GetScaledMousePosition(void)
 {
-    Vector2 mouse = GetMousePosition();
-    float scale = MIN((float)GetScreenWidth()/VIRTUAL_WIDTH, (float)GetScreenHeight()/VIRTUAL_HEIGHT);
-    Vector2 mousePos = { 0 };
-
-    mousePos.x = (mouse.x - (GetScreenWidth() - (VIRTUAL_WIDTH*scale))*0.5f)/scale;
-    mousePos.y = (mouse.y - (GetScreenHeight() - (VIRTUAL_HEIGHT*scale))*0.5f)/scale;
-    mousePos = Vector2Clamp(mousePos, (Vector2){ 0, 0 }, (Vector2){ (float)VIRTUAL_WIDTH, (float)VIRTUAL_HEIGHT });
-
-    return mousePos;
+    return GetScreenToWorld2D(GetMousePosition(), game.camera);
 }

@@ -13,6 +13,9 @@
 
 #define ARRAY_SIZE(arr) (sizeof(arr)/sizeof((arr)[0]))
 
+// Initialize
+// ----------------------------------------------------------------------------
+
 void InitUiState(void)
 {
     UiState uiDefaults = {
@@ -38,24 +41,41 @@ void InitUiState(void)
     // Pause menu
     UiMenu *pauseMenu = &uiDefaults.menus[UI_MENU_PAUSE];
     int resumeTextLength = MeasureText("Resume", UI_FONT_SIZE_EDGE);
-    float resumePosX = (float)VIRTUAL_WIDTH/2 - resumeTextLength/2;
+    float resumePosX = (float)(VIRTUAL_WIDTH - resumeTextLength)/2;
     float resumePosY = (float)VIRTUAL_HEIGHT/2 + UI_FONT_SIZE_EDGE + UI_BUTTON_SPACING*2;
     CreateUiMenuButton("Resume", pauseMenu, resumePosX, resumePosY, UI_FONT_SIZE_EDGE);
     CreateUiMenuButtonRelative("Back to Title", pauseMenu, UI_BUTTON_SPACING, UI_FONT_SIZE_EDGE);
 
-    // // Pause button
-    // float pausePosX = UI_EDGE_PADDING + UI_BUTTON_PADDING;
-    // float pausePosY = (float)(VIRTUAL_HEIGHT - UI_FONT_SIZE_EDGE -
-    //                           UI_EDGE_PADDING - UI_BUTTON_PADDING);
-    // uiDefaults.pause = InitUiButton("Pause", UI_BID_PAUSE, pausePosX, pausePosY, UI_FONT_SIZE_EDGE);
+    // Pause button
+    int pauseTextLength = MeasureText("Pause", UI_FONT_SIZE_EDGE);
+    float pausePosX = (float)(VIRTUAL_WIDTH - pauseTextLength)/2;
+    float pausePosY = (float)(VIRTUAL_HEIGHT - UI_FONT_SIZE_EDGE -
+                              UI_EDGE_PADDING - UI_BUTTON_PADDING);
+    uiDefaults.pause = InitUiButton("Pause", UI_BID_PAUSE, pausePosX, pausePosY, UI_FONT_SIZE_EDGE);
 
-    // // Virtual input button (WIP)
-    // int flyTextLength = MeasureText("Fly", UI_FONT_SIZE_EDGE);
-    // float flyPosX = (float)(VIRTUAL_WIDTH - flyTextLength -
-    //                         UI_EDGE_PADDING - UI_BUTTON_PADDING);
-    // float flyPosY = (float)(VIRTUAL_HEIGHT - UI_FONT_SIZE_EDGE -
-    //                         UI_EDGE_PADDING - UI_BUTTON_PADDING);
-    // uiDefaults.fly = InitUiButton("Fly", UI_BID_SHOOT, flyPosX, flyPosY, UI_FONT_SIZE_EDGE);
+    // Virtual thrust button
+    int flyTextLength = MeasureText("Thrust", UI_FONT_SIZE_EDGE);
+    float flyPosX = (float)(VIRTUAL_WIDTH - flyTextLength -
+                            UI_EDGE_PADDING - UI_BUTTON_PADDING);
+    float flyPosY = (float)(VIRTUAL_HEIGHT - UI_FONT_SIZE_EDGE -
+                            UI_EDGE_PADDING - UI_BUTTON_PADDING);
+    uiDefaults.fly = InitUiButton("Thrust", UI_BID_THRUST, flyPosX, flyPosY, UI_FONT_SIZE_EDGE);
+
+    // Virtual shoot button
+    int shootTextLength = MeasureText("Shoot", UI_FONT_SIZE_EDGE);
+    float shootPosX = (float)(flyPosX - shootTextLength -
+                            UI_EDGE_PADDING - UI_BUTTON_PADDING);
+    float shootPosY = (float)(VIRTUAL_HEIGHT - UI_FONT_SIZE_EDGE -
+                            UI_EDGE_PADDING - UI_BUTTON_PADDING);
+    uiDefaults.shoot = InitUiButton("Shoot", UI_BID_SHOOT, shootPosX, shootPosY, UI_FONT_SIZE_EDGE);
+
+    // Virtual analog stick
+    uiDefaults.stick.centerPos.x = UI_STICK_RADIUS + UI_EDGE_PADDING;
+    uiDefaults.stick.centerPos.y = VIRTUAL_HEIGHT - UI_STICK_RADIUS - UI_EDGE_PADDING;
+    uiDefaults.stick.stickPos = uiDefaults.stick.centerPos;
+    uiDefaults.stick.centerRadius = UI_STICK_RADIUS;
+    uiDefaults.stick.stickRadius = UI_STICK_RADIUS/2;
+    uiDefaults.stick.lastTouchIdx = -1;
 
     ui = uiDefaults;
 }
@@ -87,7 +107,6 @@ UiButton InitUiButton(char *text, int buttonId, float textPosX, float textPosY, 
         .text = text,
         .buttonId = buttonId,
         .fontSize = fontSize,
-        .mouseHovered = false,
         .position = { textPosX, textPosY },
         .color = RAYWHITE
     };
@@ -122,9 +141,11 @@ void FreeUiState(void)
         MemFree(ui.menus[i].buttons);
 }
 
+// Update / User Input
+// ----------------------------------------------------------------------------
+
 void UpdateUiFrame(void)
 {
-    // ui.mouseInUse = false;
     if (ui.currentMenu != UI_MENU_GAMEPLAY)
     {
         // Cancel/Back to main title menu
@@ -143,13 +164,9 @@ void UpdateUiFrame(void)
     }
     else if (!game.isPaused)
     {
-        // // Pause button
+        // Pause button
         // UpdateUiButtonMouseHover(&ui.pause);
-        // UpdateUiButtonSelect(&ui.pause);
-
-        // // Fly input button
-        // if (ui.mouseInUse == false)
-        //     UpdateUiButtonMouseHover(&ui.fly);
+        UpdateUiButtonSelect(&ui.pause);
     }
 
     // Update text fade animation
@@ -179,14 +196,12 @@ void UpdateUiMenuTraverse(void)
     bool mouseMoved = (Vector2Length(GetMouseDelta()) > 0);
     if (mouseMoved || (ui.firstFrame && ui.lastSelectWithMouse))
     {
-        Vector2 mousePos = GetScaledMousePosition();
-
         for (unsigned int i = 0; i < menu->buttonCount; i++)
         {
             UiButton *currentButton = 0;
             currentButton = &menu->buttons[i];
 
-            if (IsMouseWithinUiButton(mousePos, currentButton))
+            if (IsMouseWithinUiButton(currentButton))
             {
                 ui.selectedId = i;
                 ui.autoScroll = false;
@@ -245,46 +260,49 @@ void UpdateUiMenuTraverse(void)
     ui.firstFrame = false;
 }
 
-void UpdateUiButtonMouseHover(UiButton *button)
-{
-    bool mouseMoved = (Vector2Length(GetMouseDelta()) > 0);
-    if (!mouseMoved) return;
+// void UpdateUiButtonMouseHover(UiButton *button)
+// {
+//     bool mouseMoved = (Vector2Length(GetMouseDelta()) > 0);
+//     if (!mouseMoved) return;
 
-    Vector2 mousePos = GetScaledMousePosition();
-
-    if (IsMouseWithinUiButton(mousePos, button))
-    {
-        // if (!button->mouseHovered)
-        //     PlaySound(game.beeps[BEEP_MENU]);
-        button->mouseHovered = true;
-        ui.mouseInUse = true;
-    }
-    else
-    {
-        button->mouseHovered = false;
-        ui.mouseInUse = false;
-    }
-}
+//     if (IsMouseWithinUiButton(button))
+//     {
+//         // if (!button->mouseHovered)
+//         //     PlaySound(game.beeps[BEEP_MENU]);
+//         button->mouseHovered = true;
+//         ui.mouseInUse = true;
+//     }
+//     else
+//     {
+//         button->mouseHovered = false;
+//         ui.mouseInUse = false;
+//     }
+// }
 
 void UpdateUiButtonSelect(UiButton *button)
 {
-    Vector2 mousePos = GetScaledMousePosition();
+    int touchIdx = IsTouchWithinUiButton(button);
 
     // Select pause button
-    if (ui.currentMenu == UI_MENU_GAMEPLAY && IsGestureDetected(GESTURE_TAP) &&
-         (!IsMouseButtonPressed(MOUSE_RIGHT_BUTTON) && IsMouseWithinUiButton(mousePos, button)))
+    bool buttonTappedOrClicked = touchIdx != -1 ||
+        (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && IsMouseWithinUiButton(button));
+    if (!buttonTappedOrClicked)
+        button->clicked = false;
+
+    if (ui.currentMenu == UI_MENU_GAMEPLAY && buttonTappedOrClicked)
     {
         if (button->buttonId == UI_BID_PAUSE)
         {
             ChangeUiMenu(UI_MENU_PAUSE);
             PlaySound(game.beeps[BEEP_MENU]);
+            button->clicked = true;
         }
     }
 
     // Select a menu button
     else if (IsInputActionPressed(INPUT_ACTION_CONFIRM) ||
         (IsGestureDetected(GESTURE_TAP) &&
-         (!IsMouseButtonPressed(MOUSE_RIGHT_BUTTON) && IsMouseWithinUiButton(mousePos, button))))
+         (!IsMouseButtonPressed(MOUSE_RIGHT_BUTTON) && IsMouseWithinUiButton(button))))
     {
         if (ui.currentMenu == UI_MENU_GAMEPLAY && !game.isPaused)
             return; // not a menu
@@ -294,6 +312,7 @@ void UpdateUiButtonSelect(UiButton *button)
             if (ui.selectedId == UI_BID_RESUME)
             {
                 game.isPaused = false;
+                game.resumeInputCooldown = true;
                 ui.currentMenu = UI_MENU_GAMEPLAY;
             }
             else if (ui.selectedId == UI_BID_BACKTOTITLE)
@@ -314,8 +333,68 @@ void UpdateUiButtonSelect(UiButton *button)
     }
 }
 
-bool IsMouseWithinUiButton(Vector2 mousePos, UiButton *button)
+void UpdateUiVirtualInput(UiButton *button)
 {
+    InputAction buttonInputAction;
+    if (button->buttonId == UI_BID_SHOOT) buttonInputAction = INPUT_ACTION_SHOOT;
+    else if (button->buttonId == UI_BID_THRUST) buttonInputAction = INPUT_ACTION_THRUST;
+    else return;
+
+    int touchIdx = IsTouchWithinUiButton(button);
+    bool buttonTapped = (touchIdx != -1);
+
+    SetVirtualInput(buttonInputAction, buttonTapped);
+    button->clicked = buttonTapped;
+}
+
+void UpdateUiAnalogStick(UiAnalogStick *stick)
+{
+    Vector2 touchPos = { 0 };
+    bool touchActive = false;
+    int touchIdx = -1;
+    if (stick->lastTouchIdx != -1)
+        touchIdx = stick->lastTouchIdx;
+    if (touchIdx == -1)
+        touchIdx = CheckCollisionTouchCircle(stick->centerPos, stick->centerRadius);
+
+    if (touchIdx == -1 || game.touchCount == 0) // not touching analog stick
+    {
+        stick->stickPos = stick->centerPos;
+        stick->isActive = false;
+        stick->lastTouchIdx = touchIdx;
+        return;
+    }
+    else // is touching analog stick
+    {
+        touchActive = true;
+        touchPos = GetScreenToWorld2D(GetTouchPosition(touchIdx), game.camera);
+        stick->lastTouchIdx = touchIdx;
+    }
+
+    if (touchActive)
+    {
+        bool touchOutsideStickRange =
+            CheckCollisionPointCircle(touchPos, stick->centerPos, stick->centerRadius);
+        if (touchOutsideStickRange)
+        {
+            stick->stickPos = touchPos;
+            stick->isActive = true;
+        }
+        else if (stick->isActive)
+        {
+            Vector2 direction = Vector2Subtract(touchPos, stick->centerPos);
+            float distance = Vector2Length(direction);
+            if (distance > stick->centerRadius)
+                direction = Vector2Scale(direction, stick->centerRadius / distance);
+            stick->stickPos = Vector2Add(stick->centerPos, direction);
+        }
+    }
+}
+
+bool IsMouseWithinUiButton(UiButton *button)
+{
+    Vector2 mousePos = GetScaledMousePosition();
+
     int padding = UI_BUTTON_PADDING; // extra clickable area around the text
     int buttonWidth = MeasureText(button->text, button->fontSize);
     if ((mousePos.x >= button->position.x - padding) &&
@@ -325,6 +404,29 @@ bool IsMouseWithinUiButton(Vector2 mousePos, UiButton *button)
         return true;
     else
         return false;
+}
+
+int IsTouchWithinUiButton(UiButton *button)
+{
+    int buttonWidth = MeasureText(button->text, button->fontSize);
+    Rectangle buttonRect = {
+        button->position.x - UI_BUTTON_PADDING,
+        button->position.y,
+        buttonWidth + UI_BUTTON_PADDING*2,
+        button->fontSize + UI_BUTTON_PADDING*2, };
+
+    return CheckCollisionTouchRec(buttonRect);
+}
+
+bool IsUiButtonPressed(UiButton *button)
+{
+    if (IsTouchWithinUiButton(button) != -1)
+        return true;
+
+    if (IsMouseWithinUiButton(button) && IsMouseButtonDown(MOUSE_LEFT_BUTTON))
+        return true;
+
+    return false;
 }
 
 void ChangeUiMenu(UiMenuState newMenu)
@@ -346,18 +448,21 @@ void ChangeUiMenu(UiMenuState newMenu)
     {
         game.isPaused = true;
         ui.selectedId = UI_BID_RESUME;
-        ui.pause.mouseHovered = false;
+        // ui.pause.mouseHovered = false;
     }
 
     else if (newMenu == UI_MENU_GAMEPLAY)
     {
         game.currentScreen = SCREEN_GAMEPLAY;
-        InitNewLevel(game.level);
+        InitNewLevel(game.currentLevel);
     }
 
     ui.currentMenu = newMenu;
     ui.firstFrame = true;
 }
+
+// Draw
+// ----------------------------------------------------------------------------
 
 void DrawUiFrame(void)
 {
@@ -367,7 +472,7 @@ void DrawUiFrame(void)
     {
         // Draw stars
         for (unsigned int i = 0; i < STAR_AMOUNT; i++)
-            DrawCircleV(game.stars[i], 1.0f, WHITE);
+            DrawCircleV(game.stars[i], 1.0f, RAYWHITE);
 
         // Draw title text
         for (unsigned int i = 0; i < ARRAY_SIZE(ui.title); i++)
@@ -385,15 +490,22 @@ void DrawUiFrame(void)
         for (unsigned int i = 0; i < menu->buttonCount; i++)
             DrawUiElement(&menu->buttons[i]);
     }
-    else if (game.currentScreen == SCREEN_GAMEPLAY)
+    else if (game.currentScreen == SCREEN_GAMEPLAY && game.touchMode)
     {
         // Draw pause button
         DrawUiOutline(&ui.pause);
         DrawUiElement(&ui.pause);
 
-        // // Draw fly input button
-        // DrawUiOutline(&ui.fly);
-        // DrawUiElement(&ui.fly);
+        // Draw fly input button
+        DrawUiOutline(&ui.fly);
+        DrawUiElement(&ui.fly);
+
+        // Draw fly input button
+        DrawUiOutline(&ui.shoot);
+        DrawUiElement(&ui.shoot);
+
+        // Draw analog stick
+        DrawUiAnalogStick(&ui.stick);
     }
 
     // Gameplay UI
@@ -403,7 +515,7 @@ void DrawUiFrame(void)
         DrawLives();
 
         // Draw level indicator
-        const char *levelText = TextFormat("Level: %i", game.level);
+        const char *levelText = TextFormat("Level %i", game.currentLevel);
         unsigned int textLength = MeasureText(levelText, UI_FONT_SIZE_EDGE);
         DrawText(levelText,
                  VIRTUAL_WIDTH - textLength - UI_EDGE_PADDING, UI_EDGE_PADDING,
@@ -425,8 +537,25 @@ void DrawUiFrame(void)
     }
 
     // Debug:
+    // for (int i = 0; i < game.touchCount; ++i)
+    // {
+    //     Vector2 touchPosition = GetScreenToWorld2D(GetTouchPosition(i), game.camera);
+    //     DrawCircleV(touchPosition, 100.0f, RAYWHITE);
+    // }
     // const int textSize = 50;
     // int textY = 100;
+    // DrawText(TextFormat("%i touchCount", game.touchCount), 0, textY, textSize, RAYWHITE);
+    // textY += textSize;
+    // Vector2 mousePos = GetScreenToWorld2D(GetMousePosition(), game.camera);
+    // DrawText(TextFormat("mouse: %3.0f, %3.0f", mousePos.x, mousePos.y), 0, textY, textSize, RAYWHITE);
+    // if (game.touchCount > 0)
+    // {
+    //     for (int i = 0; i < game.touchCount; i++)
+    //     {
+    //         textY += textSize;
+    //         DrawText(TextFormat("touch %i: %3.0f, %3.0f", i, GetTouchPosition(i).x, GetTouchPosition(i).y), 0, textY, textSize, RAYWHITE);
+    //     }
+    // }
     // DrawText(TextFormat("%2i rock total", game.rockLimit), 0, textY, textSize, RAYWHITE);
     // textY += textSize;
     // DrawText(TextFormat("%2i remaining", game.rockLimit - game.eliminatedCount), 0, textY, textSize, RAYWHITE);
@@ -466,10 +595,10 @@ void DrawUiOutline(UiButton *selectedButton)
     int highlightHeight = buttonHeight + padding * 2;
 
     Color boxColor = RAYWHITE;
-    if (selectedButton->mouseHovered && IsMouseButtonDown(MOUSE_LEFT_BUTTON))
-        boxColor = ColorAlpha(RAYWHITE, 0.30f);
+    if (selectedButton->clicked)
+        boxColor = ColorAlpha(boxColor, UI_TRANSPARENCY*3);
     else
-        boxColor = ColorAlpha(RAYWHITE, 0.10f);
+        boxColor = ColorAlpha(boxColor, UI_TRANSPARENCY);
 
     // outline box
     DrawRectangleLinesEx((Rectangle){ buttonPosX, buttonPosY,
@@ -480,18 +609,28 @@ void DrawUiOutline(UiButton *selectedButton)
                   highlightWidth - outlineWidth*2, highlightHeight - outlineWidth*2, boxColor);
 }
 
+void DrawUiAnalogStick(UiAnalogStick *stick)
+{
+    DrawCircleV(stick->centerPos, stick->centerRadius, ColorAlpha(RAYWHITE, UI_TRANSPARENCY));
+    DrawRing(stick->centerPos, stick->centerRadius - 4, stick->centerRadius + 4,
+             0, 360, 0, RAYWHITE);
+    DrawCircleV(stick->stickPos, stick->stickRadius, GRAY);
+}
+
 void DrawLives(void)
 {
-    float scale = 0.75f; // compared to actual ship
-    float spacing = game.ship.width/6;
-    Vector2 lifeTriangle[3] = {
-        Vector2Scale(game.shipTriangle[0], scale),
-        Vector2Scale(game.shipTriangle[1], scale),
-        Vector2Scale(game.shipTriangle[2], scale),
-    };
+    // const char* text = "Lives";
+    // int textWidth = MeasureText(text, UI_FONT_SIZE_EDGE);
+    // DrawText(text, UI_EDGE_PADDING, UI_EDGE_PADDING, UI_FONT_SIZE_EDGE, RAYWHITE);
+    float scale = 1.10f; // compared to actual ship
+    float spacing = game.ship.width*scale/8;
+    Vector2 lifeTriangle[3] = { 0 };
 
     for (unsigned int i = 0; i < 3; i++)
     {
+        lifeTriangle[i] = Vector2Scale(game.shipTriangle[i], scale);
+        lifeTriangle[i] = Vector2Rotate(lifeTriangle[i], DEG2RAD*30.0f);
+        // lifeTriangle[i].x += textWidth;
         lifeTriangle[i].x += UI_EDGE_PADDING - game.ship.width*scale/2 - spacing;
         lifeTriangle[i].y += UI_EDGE_PADDING + game.ship.length*scale/2;
     }
@@ -502,7 +641,7 @@ void DrawLives(void)
         {
             lifeTriangle[j].x += spacing + game.ship.width*scale;
         }
-        DrawTriangle(lifeTriangle[0], lifeTriangle[1], lifeTriangle[2], GRAY);
+        DrawTriangle(lifeTriangle[0], lifeTriangle[1], lifeTriangle[2], RAYWHITE);
     }
 }
 
@@ -529,10 +668,10 @@ void DrawCenterText(void)
     }
     else if (game.newLevelTimer > EPSILON)
     {
-        if (game.level == 1)
+        if (game.currentLevel == 1)
             text = "GAME START";
         else
-            text = TextFormat("LEVEL %i", game.level);
+            text = TextFormat("LEVEL %i", game.currentLevel);
         centerText = true;
     }
     else if (game.ship.exploded)

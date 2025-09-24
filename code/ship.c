@@ -29,29 +29,37 @@ void UpdateShip(SpaceShip *ship)
     // Player Input
     // ----------------------------------------------------------------------------
 
-    // check if mouse is over an interactive UI element
-    bool isMouseLeftValid = (IsMouseButtonDown(MOUSE_LEFT_BUTTON) && !ui.mouseInUse);
-    bool isInputActionValid = isMouseLeftValid || !IsMouseButtonDown(MOUSE_LEFT_BUTTON);
-
     // Rotate (mouse)
-    if ((Vector2Length(GetMouseDelta()) != 0) || IsMouseButtonDown(MOUSE_RIGHT_BUTTON) || isMouseLeftValid)
+    bool mouseMoved = (Vector2Length(GetMouseDelta()) != 0);
+    if (!game.touchMode && mouseMoved)
     {
-        Vector2 mousePos = GetScaledMousePosition();
-        Vector2 mouseDirection = Vector2Subtract(mousePos, ship->position);
-        float distanceToMouse = Vector2Length(mouseDirection);
-        if ((IsInputActionDown(INPUT_ACTION_FORWARD) && distanceToMouse > ship->length) ||
-            !IsInputActionDown(INPUT_ACTION_FORWARD) || IsMouseButtonDown(MOUSE_RIGHT_BUTTON))
-            ship->rotation = (float)atan2(mouseDirection.y, mouseDirection.x)*RAD2DEG + 90;
+        RotateShipToMouse(ship);
     }
+
+    // Rotate (touch analog stick)
+    if (ui.stick.isActive)
+    {
+        Vector2 stickDirection = Vector2Subtract(ui.stick.stickPos, ui.stick.centerPos);
+        ship->rotation = (float)atan2(stickDirection.y, stickDirection.x)*RAD2DEG + 90;
+    }
+
     // Rotate (keys)
     if (IsInputActionDown(INPUT_ACTION_LEFT))
         ship->rotation -= SHIP_TURN_SPEED*game.frameTime;
     if (IsInputActionDown(INPUT_ACTION_RIGHT))
         ship->rotation += SHIP_TURN_SPEED*game.frameTime;
 
-    // Calculate thrust amount
-    if (IsInputActionDown(INPUT_ACTION_FORWARD))
+    // Thrust jet forward
+    bool inputActionThrust = IsInputActionDown(INPUT_ACTION_THRUST);
+    bool keyInputThrust = !IsInputActionMouseDown(INPUT_ACTION_THRUST);
+    bool mouseInputThrust = (!game.touchMode && !keyInputThrust);
+    bool touchInputThrust = (game.touchMode && ui.fly.clicked);
+    if ((inputActionThrust && game.resumeInputCooldown == false) &&
+        (keyInputThrust || mouseInputThrust || touchInputThrust))
     {
+        if (mouseInputThrust)
+            RotateShipToMouse(ship);
+
         Vector2 thrust = (Vector2){ 0, -SHIP_THRUST_SPEED };
         thrust = Vector2Rotate(thrust, ship->rotation*DEG2RAD);
         thrust = Vector2Scale(thrust, game.frameTime);
@@ -63,8 +71,16 @@ void UpdateShip(SpaceShip *ship)
         ship->isThrusting = false;
 
     // Shoot missile
-    if (IsInputActionDown(INPUT_ACTION_SHOOT) && isInputActionValid)
+    bool inputActionShoot = IsInputActionDown(INPUT_ACTION_SHOOT);
+    bool keyInputShoot = !IsInputActionMouseDown(INPUT_ACTION_SHOOT);
+    bool mouseInputShoot = (!game.touchMode && !keyInputShoot);
+    bool touchInputShoot = (game.touchMode && ui.shoot.clicked);
+    if ((inputActionShoot && game.resumeInputCooldown == false) &&
+        (keyInputShoot || mouseInputShoot || touchInputShoot))
     {
+        if (mouseInputShoot)
+            RotateShipToMouse(ship);
+
         if (ship->autoFireTimer == 0)
         {
             ShootMissile(ship);
@@ -121,18 +137,6 @@ void UpdateShip(SpaceShip *ship)
     }
 }
 
-void UpdateShipTriangles(SpaceShip *ship)
-{
-    // Calculate new triangle points for drawing, collision, & screen wrap
-    for (unsigned int i = 0; i < 3; i++)
-    {
-        ship->shipPoints[i] = Vector2Rotate(game.shipTriangle[i], ship->rotation*DEG2RAD);
-        ship->shipPoints[i] = Vector2Add(ship->shipPoints[i], ship->position);
-        ship->jetPoints[i] = Vector2Rotate(game.jetTriangle[i], (ship->rotation+180)*DEG2RAD);
-        ship->jetPoints[i] = Vector2Add(ship->jetPoints[i], ship->position);
-    }
-}
-
 void DrawShip(SpaceShip *ship)
 {
     // Transparent ship during respawn invincibility
@@ -164,10 +168,29 @@ void DrawShip(SpaceShip *ship)
             cloneJet[2] = Vector2Add(ship->jetPoints[2], game.wrapOffsets[i]);
 
             DrawTriangle(cloneShip[0], cloneShip[1], cloneShip[2], shipColor);
-            if (IsInputActionDown(INPUT_ACTION_FORWARD))
+            if (IsInputActionDown(INPUT_ACTION_THRUST))
                 DrawTriangle(cloneJet[0], cloneJet[1], cloneJet[2], jetColor);
         }
     }
+}
+
+void UpdateShipTriangles(SpaceShip *ship)
+{
+    // Calculate new triangle points for drawing, collision, & screen wrap
+    for (unsigned int i = 0; i < 3; i++)
+    {
+        ship->shipPoints[i] = Vector2Rotate(game.shipTriangle[i], ship->rotation*DEG2RAD);
+        ship->shipPoints[i] = Vector2Add(ship->shipPoints[i], ship->position);
+        ship->jetPoints[i] = Vector2Rotate(game.jetTriangle[i], (ship->rotation+180)*DEG2RAD);
+        ship->jetPoints[i] = Vector2Add(ship->jetPoints[i], ship->position);
+    }
+}
+
+void RotateShipToMouse(SpaceShip *ship)
+{
+    Vector2 mousePos = GetScaledMousePosition();
+    Vector2 mouseDirection = Vector2Subtract(mousePos, ship->position);
+    ship->rotation = (float)atan2(mouseDirection.y, mouseDirection.x)*RAD2DEG + 90;
 }
 
 void RespawnShip(SpaceShip *ship)

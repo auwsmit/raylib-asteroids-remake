@@ -104,7 +104,22 @@ void UpdateDrawFrame(void)
 {
     // Update
     // ----------------------------------------------------------------------------
+
+    // Global updates
     game.frameTime = GetFrameTime();
+    game.touchCount = UpdateInputTouchPoints();
+    if (game.touchCount == 0)
+    {
+        if (IsMouseButtonDown(MOUSE_LEFT_BUTTON) ||
+            IsMouseButtonDown(MOUSE_RIGHT_BUTTON))
+            game.touchMode = false;
+    }
+    else
+    {
+        game.touchMode = true;
+    }
+    // TraceLog(LOG_INFO, TextFormat("touch count: %i\ntouch mode: %i", game.touchCount, game.touchMode));
+
     HandleToggleFullscreen();
     UpdateCameraViewport();
 

@@ -47,9 +47,10 @@ typedef struct SpaceShip {
 // ----------------------------------------------------------------------------
 
 void UpdateShip(SpaceShip *ship);
-void UpdateShipTriangles(SpaceShip *ship);
 void DrawShip(SpaceShip *ship);
 
+void UpdateShipTriangles(SpaceShip *ship);
+void RotateShipToMouse(SpaceShip *ship);
 void RespawnShip(SpaceShip *ship);
 void ShootMissile(SpaceShip *ship);
 

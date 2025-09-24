@@ -7,6 +7,7 @@
 #include "raylib.h"
 #include "asteroid.h"
 #include "ship.h"
+#include "input.h"
 
 // Macros
 // ----------------------------------------------------------------------------
@@ -33,17 +34,23 @@ typedef enum GameBeep {
     BEEP_MENU, BEEP_SHOOT, BEEP_EXPLODE
 } GameBeep;
 
+typedef enum WaveType {
+    SOUND_TYPE_SINE, SOUND_TYPE_SQUARE
+} WaveType;
+
 typedef struct GameState {
     Sound beeps[3];
     Camera2D camera;
     SpaceShip ship;
     Asteroid *rocks;
+    Vector2 touchPositions[INPUT_MAX_TOUCH_POINTS];
     Vector2 stars[STAR_AMOUNT];
     Vector2 shipTriangle[3];
     Vector2 jetTriangle[3];
     Vector2 wrapOffsets[8];
     ScreenState currentScreen;
-    unsigned int level;
+    int touchCount;
+    unsigned int currentLevel;
     unsigned int lives;
     unsigned int rockCountStartOfLevel;
     unsigned int rockCount;
@@ -52,9 +59,11 @@ typedef struct GameState {
     float frameTime;
     float delayTimer;
     float newLevelTimer;
+    bool touchMode;
     bool isPaused;
     bool levelFinished;
     bool gameShouldExit;
+    bool resumeInputCooldown;
 } GameState;
 
 extern GameState game; // global declaration
@@ -65,7 +74,7 @@ extern GameState game; // global declaration
 // Initialization
 void InitGameState(void); // Initialize game data and allocate memory for beeps
 void InitNewLevel(unsigned int newLevel);
-Sound GenBeep(float freq, float lengthSec); // Generate and allocate memory for a sine wave buffer
+Sound GenBeep(float freq, float lengthSec, WaveType type); // Generate and allocate memory for a sine wave buffer
 void FreeGameState(void); // Free any allocated memory within game state
 
 // Update & Draw

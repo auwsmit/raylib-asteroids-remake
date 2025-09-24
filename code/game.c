@@ -59,7 +59,7 @@ void InitGameState(void)
             { -VIRTUAL_WIDTH,  VIRTUAL_HEIGHT }  // bottom-left
         },
 
-        .level = 1,
+        .currentLevel = 1,
         .lives = STARTING_LIVES,
     };
 
@@ -80,15 +80,16 @@ void InitGameState(void)
     }
 
     // Allocate memory for beep sine waves
-    game.beeps[BEEP_MENU] = GenBeep(300.0f, 0.03f);
-    game.beeps[BEEP_SHOOT] = GenBeep(400.0f, 0.05f);
-    game.beeps[BEEP_EXPLODE] = GenBeep(150.0f, EXPLOSION_TIME);
+    game.beeps[BEEP_MENU] = GenBeep(300.0f, 0.03f, SOUND_TYPE_SQUARE);
+    game.beeps[BEEP_SHOOT] = GenBeep(400.0f, 0.05f, SOUND_TYPE_SINE);
+    game.beeps[BEEP_EXPLODE] = GenBeep(150.0f, EXPLOSION_TIME, SOUND_TYPE_SQUARE);
+    SetSoundVolume(game.beeps[BEEP_EXPLODE], 0.16f);
 }
 
 void InitNewLevel(unsigned int newLevel)
 {
     game.lives = STARTING_LIVES;
-    game.level = newLevel;
+    game.currentLevel = newLevel;
     game.rockCount = 0;
     game.eliminatedCount = 0;
     game.levelFinished = false;
@@ -97,17 +98,16 @@ void InitNewLevel(unsigned int newLevel)
     {
         game.rockCountStartOfLevel = LVL1_ASTEROID_AMOUNT;
         game.ship.position = (Vector2){ VIRTUAL_WIDTH/2, VIRTUAL_HEIGHT/2 };
-        // game.ship.respawnTimer = 0.0f;
         UpdateShipTriangles(&game.ship);
     }
     else
     {
-        unsigned int rc = LVL1_ASTEROID_AMOUNT;
-        for (unsigned int i = 2; i <= game.level; i++)
+        unsigned int rocks = LVL1_ASTEROID_AMOUNT;
+        for (unsigned int i = 2; i <= game.currentLevel; i++)
         {
-            rc += (i % 2)? 1 : 2;
+            rocks += (i % 2)? 1 : 2;
         }
-        game.rockCountStartOfLevel = rc;
+        game.rockCountStartOfLevel = rocks;
         game.ship.safeRespawnTimer = SHIP_SAFE_TIME;
         game.ship.velocity = (Vector2){ 0, 0 };
     }
@@ -129,7 +129,7 @@ void InitNewLevel(unsigned int newLevel)
     ui.textFade = 1.0f;
 }
 
-Sound GenBeep(float freq, float lengthSec)
+Sound GenBeep(float freq, float lengthSec, WaveType type)
 {
     unsigned int sampleRate = 44100;
     unsigned int samples = (int)(lengthSec*sampleRate);
@@ -145,10 +145,13 @@ Sound GenBeep(float freq, float lengthSec)
         float timeInSeconds = (float)i/sampleRate;
 
         // sine wave
-        // float sample = sinf(2.0f*PI*freq*timeInSeconds);
+        float sample = 0.0f;
+        if (type == SOUND_TYPE_SINE)
+            sample = sinf(2.0f*PI*freq*timeInSeconds);
 
         // square wave
-        float sample = (fmodf(freq * timeInSeconds, 1.0f) < 0.5f) ? 1.0f : -1.0f;
+        else if (type == SOUND_TYPE_SQUARE)
+            sample = (fmodf(freq * timeInSeconds, 1.0f) < 0.5f) ? 1.0f : -1.0f;
 
         // Apply fade in/out
         float amplitude = 1.0f;
@@ -173,7 +176,7 @@ Sound GenBeep(float freq, float lengthSec)
     };
 
     Sound beep = LoadSoundFromWave(beepSoundWave);
-    SetSoundVolume(beep, 0.25f);
+    SetSoundVolume(beep, 0.30f);
 
     UnloadWave(beepSoundWave); // frees data
     return beep;
@@ -191,8 +194,16 @@ void FreeGameState(void)
 
 void UpdateGameFrame(void)
 {
+    // Update virtual input buttons
+    if (game.touchMode)
+    {
+        UpdateUiVirtualInput(&ui.shoot);
+        UpdateUiVirtualInput(&ui.fly);
+        UpdateUiAnalogStick(&ui.stick);
+    }
+
     // Detect win state and go to next level
-    if (!game.levelFinished && game.lives > 0 &&
+    if (!game.levelFinished && (game.lives > 0) &&
         game.rockLimit == game.eliminatedCount)
     {
         game.levelFinished = true;
@@ -200,7 +211,7 @@ void UpdateGameFrame(void)
         ui.textFade = 1.0f;
     }
     if (game.levelFinished && (game.delayTimer < EPSILON))
-        InitNewLevel(game.level + 1);
+        InitNewLevel(game.currentLevel + 1);
 
     // Pause
     if (IsInputActionPressed(INPUT_ACTION_PAUSE) ||
@@ -222,13 +233,14 @@ void UpdateGameFrame(void)
         PlaySound(game.beeps[BEEP_MENU]);
     }
 
+    // Update timers
     if (!game.isPaused && game.delayTimer > EPSILON)
         game.delayTimer -= game.frameTime;
     if (!game.isPaused && game.newLevelTimer > EPSILON)
         game.newLevelTimer -= game.frameTime;
 
     bool noMessageDisplayed = (game.newLevelTimer < EPSILON);
-    if (!game.isPaused && (noMessageDisplayed || game.delayTimer > 0))
+    if (!game.isPaused && (noMessageDisplayed || game.delayTimer > EPSILON))
     {
         // Game Over
         bool inputCooldownFinished = (SHIP_RESPAWN_TIME - game.ship.respawnTimer >= GAMEOVER_INPUT_COOLDOWN);
@@ -252,14 +264,13 @@ void UpdateGameFrame(void)
         // Update ship
         UpdateShip(&game.ship);
     }
+    // Prevent input after resuming pause
+    if (IsMouseButtonUp(MOUSE_LEFT_BUTTON) && game.resumeInputCooldown)
+        game.resumeInputCooldown = false;
 
     // Update user interface elements and logic
     UpdateUiFrame();
 }
-
-// void UpdateTimers(void)
-// {
-// }
 
 void DrawGameFrame(void)
 {
@@ -287,7 +298,11 @@ void DrawGameFrame(void)
 
     // Draw ship
     if (!game.ship.exploded)
+    {
         DrawShip(&game.ship);
+        if (game.ship.safeRespawnTimer > 0)
+            DrawCircleV(game.ship.position, game.ship.length, Fade(GRAY, 0.25f));
+    }
     else if (game.ship.explosionTimer > EPSILON)
         DrawCircleV(game.ship.position, game.ship.length, Fade(RED, 0.5f));
 
