@@ -111,10 +111,11 @@ void UpdateUiMenuTraverse(void); // Updates the cursor for movement by user inpu
 void UpdateUiButtonSelect(UiButton *button); // Selects a button by user input
 void UpdateUiVirtualInput(UiButton *button); // Updates virtual input from button
 void UpdateUiAnalogStick(UiAnalogStick *stick);
+void ChangeUiMenu(UiMenuState newMenu); // Change from one menu to another
+
 bool IsMouseWithinUiButton(UiButton *button);
 int IsTouchWithinUiButton(UiButton *button);
 bool IsUiButtonPressed(UiButton *button);
-void ChangeUiMenu(UiMenuState newMenu); // Change from one menu to another
 
 // Draw
 void DrawUiFrame(void); // Draws the menu for the current frame

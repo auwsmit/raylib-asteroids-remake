@@ -146,6 +146,7 @@ void FreeUiState(void)
 
 void UpdateUiFrame(void)
 {
+    // Update title menu
     if (ui.currentMenu != UI_MENU_GAMEPLAY)
     {
         // Cancel/Back to main title menu
@@ -162,10 +163,12 @@ void UpdateUiFrame(void)
         UpdateUiButtonSelect(selectedButton);
         UpdateUiMenuTraverse();
     }
-    else if (!game.isPaused)
+    // Update in-game UI buttons
+    // (touch virtual controls are separate,
+    // see UpdateUiTouchButton)
+    else if (!game.isPaused && game.touchMode)
     {
         // Pause button
-        // UpdateUiButtonMouseHover(&ui.pause);
         UpdateUiButtonSelect(&ui.pause);
     }
 
@@ -254,7 +257,7 @@ void UpdateUiMenuTraverse(void)
         ui.autoScroll = false;
     }
 
-    if (ui.selectedId != prevId && !ui.firstFrame)
+    if (ui.selectedId != prevId && !ui.firstFrame && !game.touchMode)
         PlaySound(game.beeps[BEEP_MENU]);
 
     ui.firstFrame = false;
@@ -391,6 +394,38 @@ void UpdateUiAnalogStick(UiAnalogStick *stick)
     }
 }
 
+void ChangeUiMenu(UiMenuState newMenu)
+{
+    if (newMenu == UI_MENU_TITLE)
+    {
+        // Clear old game state if returning from gameplay
+        if (game.currentScreen == SCREEN_GAMEPLAY)
+        {
+            FreeGameState();
+            InitGameState();
+            game.currentScreen = SCREEN_TITLE;
+        }
+
+        ui.selectedId = UI_BID_START;
+    }
+
+    else if (newMenu == UI_MENU_PAUSE)
+    {
+        game.isPaused = true;
+        ui.selectedId = UI_BID_RESUME;
+        // ui.pause.mouseHovered = false;
+    }
+
+    else if (newMenu == UI_MENU_GAMEPLAY)
+    {
+        game.currentScreen = SCREEN_GAMEPLAY;
+        InitNewLevel(game.currentLevel);
+    }
+
+    ui.currentMenu = newMenu;
+    ui.firstFrame = true;
+}
+
 bool IsMouseWithinUiButton(UiButton *button)
 {
     Vector2 mousePos = GetScaledMousePosition();
@@ -427,38 +462,6 @@ bool IsUiButtonPressed(UiButton *button)
         return true;
 
     return false;
-}
-
-void ChangeUiMenu(UiMenuState newMenu)
-{
-    if (newMenu == UI_MENU_TITLE)
-    {
-        // Clear old game state if returning from gameplay
-        if (game.currentScreen == SCREEN_GAMEPLAY)
-        {
-            FreeGameState();
-            InitGameState();
-            game.currentScreen = SCREEN_TITLE;
-        }
-
-        ui.selectedId = UI_BID_START;
-    }
-
-    else if (newMenu == UI_MENU_PAUSE)
-    {
-        game.isPaused = true;
-        ui.selectedId = UI_BID_RESUME;
-        // ui.pause.mouseHovered = false;
-    }
-
-    else if (newMenu == UI_MENU_GAMEPLAY)
-    {
-        game.currentScreen = SCREEN_GAMEPLAY;
-        InitNewLevel(game.currentLevel);
-    }
-
-    ui.currentMenu = newMenu;
-    ui.firstFrame = true;
 }
 
 // Draw
@@ -525,7 +528,7 @@ void DrawUiFrame(void)
         int totalRocksRemaining = game.rockLimit - game.eliminatedCount;
         if (totalRocksRemaining <= 10)
         {
-            const char* remainText = TextFormat("%2i Remaining", totalRocksRemaining);
+            const char* remainText = TextFormat("Remaining: %i", totalRocksRemaining);
             int textOffset = MeasureText(remainText, UI_FONT_SIZE_EDGE)/2;
             DrawText(remainText,
                      VIRTUAL_WIDTH/2 - textOffset, UI_EDGE_PADDING,
@@ -619,9 +622,9 @@ void DrawUiAnalogStick(UiAnalogStick *stick)
 
 void DrawLives(void)
 {
-    // const char* text = "Lives";
-    // int textWidth = MeasureText(text, UI_FONT_SIZE_EDGE);
-    // DrawText(text, UI_EDGE_PADDING, UI_EDGE_PADDING, UI_FONT_SIZE_EDGE, RAYWHITE);
+    const char* text = "Lives: ";
+    int textWidth = MeasureText(text, UI_FONT_SIZE_EDGE);
+    DrawText(text, UI_EDGE_PADDING, UI_EDGE_PADDING, UI_FONT_SIZE_EDGE, RAYWHITE);
     float scale = 1.10f; // compared to actual ship
     float spacing = game.ship.width*scale/8;
     Vector2 lifeTriangle[3] = { 0 };
@@ -630,7 +633,7 @@ void DrawLives(void)
     {
         lifeTriangle[i] = Vector2Scale(game.shipTriangle[i], scale);
         lifeTriangle[i] = Vector2Rotate(lifeTriangle[i], DEG2RAD*30.0f);
-        // lifeTriangle[i].x += textWidth;
+        lifeTriangle[i].x += textWidth;
         lifeTriangle[i].x += UI_EDGE_PADDING - game.ship.width*scale/2 - spacing;
         lifeTriangle[i].y += UI_EDGE_PADDING + game.ship.length*scale/2;
     }

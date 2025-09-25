@@ -88,7 +88,6 @@ void InitGameState(void)
 
 void InitNewLevel(unsigned int newLevel)
 {
-    game.lives = STARTING_LIVES;
     game.currentLevel = newLevel;
     game.rockCount = 0;
     game.eliminatedCount = 0;
@@ -96,6 +95,7 @@ void InitNewLevel(unsigned int newLevel)
     game.newLevelTimer = NEW_LEVEL_TIMER;
     if (newLevel == 1)
     {
+        game.lives = STARTING_LIVES;
         game.rockCountStartOfLevel = LVL1_ASTEROID_AMOUNT;
         game.ship.position = (Vector2){ VIRTUAL_WIDTH/2, VIRTUAL_HEIGHT/2 };
         UpdateShipTriangles(&game.ship);

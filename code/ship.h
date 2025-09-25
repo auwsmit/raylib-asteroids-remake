@@ -14,7 +14,7 @@
 #define SHIP_LENGTH 60.0f
 #define SHIP_TURN_SPEED 190.0f // turn X degrees per second
 #define SHIP_THRUST_SPEED 400.0f
-#define SHIP_MAX_SPEED 1200.0f
+#define SHIP_MAX_SPEED 2400.0f
 #define SHIP_RESPAWN_TIME 1.5f
 #define SHIP_SAFE_TIME 3.0f
 #define SHIP_AUTO_FIRE_RATE 0.3f
