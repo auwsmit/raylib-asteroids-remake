@@ -125,7 +125,7 @@ void UpdateShip(SpaceShip *ship)
             rock->exploded = true;
             SplitAsteroid(i);
             game.eliminatedCount++;
-            PlaySound(game.beeps[BEEP_EXPLODE]);
+            PlaySound(game.sounds[SOUND_EXPLODE_MEDIUM]);
         }
     }
     if (game.ship.exploded)
@@ -139,14 +139,16 @@ void UpdateShip(SpaceShip *ship)
 
 void DrawShip(SpaceShip *ship)
 {
-    // Transparent ship during respawn invincibility
+    if ((game.ship.explosionTimer > EPSILON) && ship->exploded)
+        DrawCircleV(game.ship.position, game.ship.length, Fade(RED, 0.5f));
+    if (ship->exploded) return;
+
     Color shipColor = GRAY;
     Color jetColor = Fade(ORANGE, 0.5f);
-    if (ship->safeRespawnTimer > 0)
-    {
-        shipColor = Fade(shipColor, 0.5);
-        jetColor = Fade(jetColor, 0.25);
-    }
+
+    // Draw respawn shield
+    if (game.ship.safeRespawnTimer > 0)
+        DrawCircleV(game.ship.position, game.ship.length, Fade(SKYBLUE, 0.15f));
 
     // Get and transform ship triangle + jet triangle
     DrawTriangle(ship->shipPoints[0], ship->shipPoints[1], ship->shipPoints[2], shipColor);
@@ -211,10 +213,23 @@ void ShootMissile(SpaceShip *ship)
 {
     // spawn bullet
     if (ship->shotCount == MISSILE_MAX)
+    {
         ship->shotCount = 0;
+    }
+
 
     Missile *shot = &ship->missiles[ship->shotCount];
 
+    if (shot->exploded == false)
+    {
+        SetSoundPitch(game.sounds[SOUND_SHOOT], 0.75f);
+        shot->overheated = true;
+    }
+    else
+    {
+        SetSoundPitch(game.sounds[SOUND_SHOOT], 1.0f);
+        shot->overheated = false;
+    }
     shot->exploded = false;
     shot->explosionTimer = EXPLOSION_TIME;
     shot->angle = ship->rotation + 180;
@@ -225,5 +240,5 @@ void ShootMissile(SpaceShip *ship)
     shot->despawnTimer = MISSILE_DESPAWN_TIME;
 
     ship->shotCount++;
-    PlaySound(game.beeps[BEEP_SHOOT]);
+    PlaySound(game.sounds[SOUND_SHOOT]);
 }

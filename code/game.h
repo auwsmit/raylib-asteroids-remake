@@ -30,16 +30,17 @@ typedef enum GameMode {
     MODE_1PLAYER, MODE_2PLAYER, MODE_DEMO
 } GameMode;
 
-typedef enum GameBeep {
-    BEEP_MENU, BEEP_SHOOT, BEEP_EXPLODE
-} GameBeep;
+typedef enum GameSound {
+    SOUND_MENU, SOUND_SHOOT,
+    SOUND_EXPLODE_SMALL, SOUND_EXPLODE_MEDIUM, SOUND_EXPLODE_BIG
+} GameSound;
 
 typedef enum WaveType {
-    SOUND_TYPE_SINE, SOUND_TYPE_SQUARE
+    WAVE_TYPE_SINE, WAVE_TYPE_SQUARE
 } WaveType;
 
 typedef struct GameState {
-    Sound beeps[3];
+    Sound sounds[5];
     Camera2D camera;
     SpaceShip ship;
     Asteroid *rocks;
@@ -59,6 +60,7 @@ typedef struct GameState {
     float frameTime;
     float delayTimer;
     float newLevelTimer;
+    bool anyKeyPressed;
     bool touchMode;
     bool isPaused;
     bool levelFinished;
@@ -72,9 +74,8 @@ extern GameState game; // global declaration
 // ----------------------------------------------------------------------------
 
 // Initialization
-void InitGameState(void); // Initialize game data and allocate memory for beeps
+void InitGameState(void); // Initialize game data and allocate memory for sounds
 void InitNewLevel(unsigned int newLevel);
-Sound GenBeep(float freq, float lengthSec, WaveType type); // Generate and allocate memory for a sine wave buffer
 void FreeGameState(void); // Free any allocated memory within game state
 
 // Update & Draw

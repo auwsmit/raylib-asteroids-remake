@@ -24,6 +24,7 @@ typedef struct Missile {
     float explosionTimer;
     bool isAtScreenEdge;
     bool exploded;
+    bool overheated;
 } Missile;
 
 // Prototypes

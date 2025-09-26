@@ -79,11 +79,12 @@ void InitGameState(void)
         shot->exploded = true; // aka non-existant
     }
 
-    // Allocate memory for beep sine waves
-    game.beeps[BEEP_MENU] = GenBeep(300.0f, 0.03f, SOUND_TYPE_SQUARE);
-    game.beeps[BEEP_SHOOT] = GenBeep(400.0f, 0.05f, SOUND_TYPE_SINE);
-    game.beeps[BEEP_EXPLODE] = GenBeep(150.0f, EXPLOSION_TIME, SOUND_TYPE_SQUARE);
-    SetSoundVolume(game.beeps[BEEP_EXPLODE], 0.16f);
+    // Get sounds
+    game.sounds[SOUND_MENU] =  LoadSound("assets/menu_beep.wav");
+    game.sounds[SOUND_SHOOT] = LoadSound("assets/shoot.wav");
+    game.sounds[SOUND_EXPLODE_SMALL] =  LoadSound("assets/explode_small.wav");
+    game.sounds[SOUND_EXPLODE_MEDIUM] = LoadSound("assets/explode_medium.wav");
+    game.sounds[SOUND_EXPLODE_BIG] =    LoadSound("assets/explode_big.wav");
 }
 
 void InitNewLevel(unsigned int newLevel)
@@ -129,64 +130,11 @@ void InitNewLevel(unsigned int newLevel)
     ui.textFade = 1.0f;
 }
 
-Sound GenBeep(float freq, float lengthSec, WaveType type)
-{
-    unsigned int sampleRate = 44100;
-    unsigned int samples = (int)(lengthSec*sampleRate);
-    short *data = MemAlloc(samples*sizeof(short));
-
-    // fade length in samples
-    // (This prevents an unpleasant "pop" noise when the sound starts or stops)
-    unsigned int fadeSamples = (unsigned int)(0.005f*sampleRate); // 5 ms
-
-    // Generate wave data
-    for (unsigned int i = 0; i < samples; i++)
-    {
-        float timeInSeconds = (float)i/sampleRate;
-
-        // sine wave
-        float sample = 0.0f;
-        if (type == SOUND_TYPE_SINE)
-            sample = sinf(2.0f*PI*freq*timeInSeconds);
-
-        // square wave
-        else if (type == SOUND_TYPE_SQUARE)
-            sample = (fmodf(freq * timeInSeconds, 1.0f) < 0.5f) ? 1.0f : -1.0f;
-
-        // Apply fade in/out
-        float amplitude = 1.0f;
-        if (i < fadeSamples)
-        {
-            amplitude = (float)i/fadeSamples; // fade in
-        }
-        else if (i > samples - fadeSamples)
-        {
-            amplitude = (float)(samples - i)/fadeSamples; // fade out
-        }
-
-        data[i] = (short)(sample*amplitude*SHRT_MAX*0.25f);
-    }
-
-    Wave beepSoundWave = {
-        .frameCount = samples,
-        .sampleRate = sampleRate,
-        .sampleSize = 16,
-        .channels = 1,
-        .data = data
-    };
-
-    Sound beep = LoadSoundFromWave(beepSoundWave);
-    SetSoundVolume(beep, 0.30f);
-
-    UnloadWave(beepSoundWave); // frees data
-    return beep;
-}
-
 void FreeGameState(void)
 {
     MemFree(game.rocks); // asteroids
-    for (unsigned int i = 0; i < ARRAY_SIZE(game.beeps); i++)
-        UnloadSound(game.beeps[i]); // beeps
+    for (unsigned int i = 0; i < ARRAY_SIZE(game.sounds); i++)
+        UnloadSound(game.sounds[i]); // sounds
 }
 
 // Update & Draw
@@ -230,7 +178,7 @@ void UpdateGameFrame(void)
             ui.currentMenu = UI_MENU_GAMEPLAY;
             ui.textFade = previousTextFade;
         }
-        PlaySound(game.beeps[BEEP_MENU]);
+        PlaySound(game.sounds[SOUND_MENU]);
     }
 
     // Update timers
@@ -290,21 +238,10 @@ void DrawGameFrame(void)
     for (unsigned int i = 0; i < MISSILE_MAX; i++)
     {
         Missile *shot = &game.ship.missiles[i];
-        if (!shot->exploded)
-            DrawMissile(shot);
-        else if (shot->explosionTimer > EPSILON)
-            DrawCircleV(shot->position, shot->radius*5, Fade(RED, 0.5f));
+        DrawMissile(shot);
     }
 
-    // Draw ship
-    if (!game.ship.exploded)
-    {
-        DrawShip(&game.ship);
-        if (game.ship.safeRespawnTimer > 0)
-            DrawCircleV(game.ship.position, game.ship.length, Fade(GRAY, 0.25f));
-    }
-    else if (game.ship.explosionTimer > EPSILON)
-        DrawCircleV(game.ship.position, game.ship.length, Fade(RED, 0.5f));
+    DrawShip(&game.ship);
 
     // Draw user interface elements
     DrawUiFrame();

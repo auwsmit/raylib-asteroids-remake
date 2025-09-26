@@ -137,7 +137,12 @@ void UpdateAsteroid(unsigned int rockIdx)
     {
         game.eliminatedCount++;
         SplitAsteroid(rockIdx);
-        PlaySound(game.beeps[BEEP_EXPLODE]);
+        Sound explosion = game.sounds[SOUND_EXPLODE_SMALL];
+        if (rock->size == ASTEROID_SIZE_MEDIUM)
+            explosion = game.sounds[SOUND_EXPLODE_MEDIUM];
+        else if (rock->size == ASTEROID_SIZE_BIG)
+            explosion = game.sounds[SOUND_EXPLODE_BIG];
+        PlaySound(explosion);
     }
 }
 

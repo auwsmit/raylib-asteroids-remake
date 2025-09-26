@@ -15,6 +15,7 @@ asteroids.exe
 asteroids.html
 asteroids.js
 asteroids.wasm
+asteroids.data
 
 # debug files
 *.pdb

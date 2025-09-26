@@ -45,6 +45,7 @@ OUTPUT     := asteroids
 
 # Source code, headers, and object file paths
 SRC_DIR    := code
+ASSETS     := assets
 OBJ_DIR    := $(SRC_DIR)/obj
 SRC        := $(wildcard $(SRC_DIR)/*.c)
 HEADERS    := $(wildcard $(SRC_DIR)/*.h)
@@ -148,7 +149,8 @@ else ifeq ($(PLATFORM),WEB)
     # --source-map-base           allow debugging in browser with source map
     LINKFLAGS  += -L$(RAYLIB_LIB)/web --shell-file $(SRC_DIR)/shell.html \
     -sUSE_GLFW=3 -sFORCE_FILESYSTEM=1 -sASYNCIFY -sTOTAL_MEMORY=67108864 \
-    -sEXPORTED_FUNCTIONS=_main,requestFullscreen -sEXPORTED_RUNTIME_METHODS=HEAPF32
+    -sEXPORTED_FUNCTIONS=_main,requestFullscreen -sEXPORTED_RUNTIME_METHODS=HEAPF32 \
+    --preload-file $(ASSETS)
 endif
 
 # Define output flags

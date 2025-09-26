@@ -89,13 +89,10 @@ void RunGameLoop(void)
 #else
     if (MAX_FRAMERATE > 0)
         SetTargetFPS(MAX_FRAMERATE);
-    // ----------------------------------------------------------------------------
 
     // Main game loop
-    while (!WindowShouldClose() && !game.gameShouldExit) // Detect window close button
-    {
+    while (!WindowShouldClose() && !game.gameShouldExit)
         UpdateDrawFrame();
-    }
 #endif
 }
 
@@ -108,16 +105,14 @@ void UpdateDrawFrame(void)
     // Global updates
     game.frameTime = GetFrameTime();
     game.touchCount = UpdateInputTouchPoints();
+    game.anyKeyPressed = (GetKeyPressed() != 0);
     if (game.touchCount == 0)
     {
         if (IsMouseButtonDown(MOUSE_LEFT_BUTTON) ||
-            IsMouseButtonDown(MOUSE_RIGHT_BUTTON))
+            IsMouseButtonDown(MOUSE_RIGHT_BUTTON) || game.anyKeyPressed)
             game.touchMode = false;
     }
-    else
-    {
-        game.touchMode = true;
-    }
+    else game.touchMode = true;
     // TraceLog(LOG_INFO, TextFormat("touch count: %i\ntouch mode: %i", game.touchCount, game.touchMode));
 
     HandleToggleFullscreen();

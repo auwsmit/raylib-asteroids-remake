@@ -155,7 +155,7 @@ void UpdateUiFrame(void)
             ui.currentMenu != UI_MENU_PAUSE)
         {
             ChangeUiMenu(UI_MENU_TITLE);
-            PlaySound(game.beeps[BEEP_MENU]);
+            PlaySound(game.sounds[SOUND_MENU]);
         }
 
         // Input for menu selection and movement
@@ -258,7 +258,7 @@ void UpdateUiMenuTraverse(void)
     }
 
     if (ui.selectedId != prevId && !ui.firstFrame && !game.touchMode)
-        PlaySound(game.beeps[BEEP_MENU]);
+        PlaySound(game.sounds[SOUND_MENU]);
 
     ui.firstFrame = false;
 }
@@ -271,7 +271,7 @@ void UpdateUiMenuTraverse(void)
 //     if (IsMouseWithinUiButton(button))
 //     {
 //         // if (!button->mouseHovered)
-//         //     PlaySound(game.beeps[BEEP_MENU]);
+//         //     PlaySound(game.sounds[SOUND_MENU]);
 //         button->mouseHovered = true;
 //         ui.mouseInUse = true;
 //     }
@@ -297,7 +297,7 @@ void UpdateUiButtonSelect(UiButton *button)
         if (button->buttonId == UI_BID_PAUSE)
         {
             ChangeUiMenu(UI_MENU_PAUSE);
-            PlaySound(game.beeps[BEEP_MENU]);
+            PlaySound(game.sounds[SOUND_MENU]);
             button->clicked = true;
         }
     }
@@ -332,7 +332,7 @@ void UpdateUiButtonSelect(UiButton *button)
                 ChangeUiMenu(UI_MENU_GAMEPLAY);
         }
 
-        PlaySound(game.beeps[BEEP_MENU]);
+        PlaySound(game.sounds[SOUND_MENU]);
     }
 }
 

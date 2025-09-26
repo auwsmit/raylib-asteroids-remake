@@ -29,9 +29,19 @@ void UpdateMissile(Missile *shot)
 
 void DrawMissile(Missile *shot)
 {
+    if ((shot->explosionTimer > EPSILON) && shot->exploded)
+        DrawCircleV(shot->position, shot->radius*5, Fade(MAROON, 0.5f));
     if (shot->exploded) return;
 
-    DrawCircleV((Vector2){ shot->position.x, shot->position.y }, shot->radius, RAYWHITE);
+    Color missileColor = RAYWHITE;
+
+    if (shot->overheated)
+    {
+        missileColor = ColorTint(missileColor, RED);
+        missileColor = ColorBrightness(missileColor, 0.7f);
+    }
+
+    DrawCircleV((Vector2){ shot->position.x, shot->position.y }, shot->radius, missileColor);
 
     // Clones at opposite side of screen
     if (shot->isAtScreenEdge)
@@ -39,7 +49,7 @@ void DrawMissile(Missile *shot)
         for (unsigned int i = 0; i < 8; i++)
         {
             Vector2 cloneAsteroid = Vector2Add(shot->position, game.wrapOffsets[i]);
-            DrawCircleV((Vector2){ cloneAsteroid.x, cloneAsteroid.y }, shot->radius, RAYWHITE);
+            DrawCircleV((Vector2){ cloneAsteroid.x, cloneAsteroid.y }, shot->radius, missileColor);
         }
     }
 }
