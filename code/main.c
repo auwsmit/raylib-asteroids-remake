@@ -46,7 +46,7 @@ int main(void)
     InitDefaultInputControls();
     InitRaylibLogo();
     InitUiState();   // also allocates memory for menu buttons
-    InitGameState(); // also allocates memory for beep sound effects
+    InitGameState(SCREEN_LOGO);
 
     // No exit key (use alt+F4 or in-game exit option)
     SetExitKey(KEY_NULL);

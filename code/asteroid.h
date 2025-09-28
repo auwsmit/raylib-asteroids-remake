@@ -21,6 +21,8 @@ typedef enum SizeOfAsteroid {
 } SizeOfAsteroid;
 
 typedef struct Asteroid {
+    Sound *soundExplode;
+    Texture *sprite;
     Color color;
     Vector2 position;
     Vector2 velocity;
@@ -29,7 +31,7 @@ typedef struct Asteroid {
     float radius;
     SizeOfAsteroid size;
     bool isAtScreenEdge;
-    bool exploded;
+    bool isExploded;
 } Asteroid;
 
 // Prototypes

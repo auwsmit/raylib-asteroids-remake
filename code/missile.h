@@ -23,7 +23,7 @@ typedef struct Missile {
     float despawnTimer;
     float explosionTimer;
     bool isAtScreenEdge;
-    bool exploded;
+    bool isExploded;
     bool overheated;
 } Missile;
 

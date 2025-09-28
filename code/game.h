@@ -11,7 +11,6 @@
 
 // Macros
 // ----------------------------------------------------------------------------
-
 #define STARTING_LIVES 3
 #define STAR_AMOUNT 800
 #define EXPLOSION_TIME 0.4f
@@ -30,17 +29,23 @@ typedef enum GameMode {
     MODE_1PLAYER, MODE_2PLAYER, MODE_DEMO
 } GameMode;
 
-typedef enum GameSound {
-    SOUND_MENU, SOUND_SHOOT,
-    SOUND_EXPLODE_SMALL, SOUND_EXPLODE_MEDIUM, SOUND_EXPLODE_BIG
-} GameSound;
+typedef struct GameSounds {
+    Sound menu;
+    Sound explodeSmall;
+    Sound explodeMedium;
+    Sound explodeBig;
+} GameSounds;
 
-typedef enum WaveType {
-    WAVE_TYPE_SINE, WAVE_TYPE_SQUARE
-} WaveType;
+typedef struct GameTextures {
+    Texture ship;
+    Texture asteroidA;
+    Texture asteroidB;
+    Texture asteroidC;
+} GameTextures;
 
 typedef struct GameState {
-    Sound sounds[5];
+    GameSounds sounds;
+    GameTextures textures;
     Camera2D camera;
     SpaceShip ship;
     Asteroid *rocks;
@@ -74,7 +79,7 @@ extern GameState game; // global declaration
 // ----------------------------------------------------------------------------
 
 // Initialization
-void InitGameState(void); // Initialize game data and allocate memory for sounds
+void InitGameState(ScreenState screen); // Initialize game data and allocate memory for sounds
 void InitNewLevel(unsigned int newLevel);
 void FreeGameState(void); // Free any allocated memory within game state
 

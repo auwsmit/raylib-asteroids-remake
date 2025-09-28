@@ -10,7 +10,7 @@ void UpdateShip(SpaceShip *ship)
     // Update timers
     // ----------------------------------------------------------------------------
 
-    if (ship->exploded)
+    if (ship->isExploded)
     {
         ship->explosionTimer -= game.frameTime;
         if (game.delayTimer < EPSILON)
@@ -40,14 +40,14 @@ void UpdateShip(SpaceShip *ship)
     if (ui.stick.isActive)
     {
         Vector2 stickDirection = Vector2Subtract(ui.stick.stickPos, ui.stick.centerPos);
-        ship->rotation = (float)atan2(stickDirection.y, stickDirection.x)*RAD2DEG + 90;
+        ship->angle = (float)atan2(stickDirection.y, stickDirection.x)*RAD2DEG + 90;
     }
 
     // Rotate (keys)
     if (IsInputActionDown(INPUT_ACTION_LEFT))
-        ship->rotation -= SHIP_TURN_SPEED*game.frameTime;
+        ship->angle -= SHIP_TURN_SPEED*game.frameTime;
     if (IsInputActionDown(INPUT_ACTION_RIGHT))
-        ship->rotation += SHIP_TURN_SPEED*game.frameTime;
+        ship->angle += SHIP_TURN_SPEED*game.frameTime;
 
     // Thrust jet forward
     bool inputActionThrust = IsInputActionDown(INPUT_ACTION_THRUST);
@@ -61,7 +61,7 @@ void UpdateShip(SpaceShip *ship)
             RotateShipToMouse(ship);
 
         Vector2 thrust = (Vector2){ 0, -SHIP_THRUST_SPEED };
-        thrust = Vector2Rotate(thrust, ship->rotation*DEG2RAD);
+        thrust = Vector2Rotate(thrust, ship->angle*DEG2RAD);
         thrust = Vector2Scale(thrust, game.frameTime);
         ship->velocity = Vector2Add(ship->velocity, thrust);
         ship->velocity = Vector2ClampValue(ship->velocity, 0, SHIP_MAX_SPEED);
@@ -118,17 +118,17 @@ void UpdateShip(SpaceShip *ship)
     for (unsigned int i = 0; i < game.rockCount; i++)
     {
         Asteroid *rock = &game.rocks[i];
-        if (!rock->exploded && CheckCollisionAsteroidShip(i, &game.ship))
+        if (!rock->isExploded && CheckCollisionAsteroidShip(i, &game.ship))
         {
-            ship->exploded = true;
+            ship->isExploded = true;
             ship->explosionTimer = EXPLOSION_TIME;
-            rock->exploded = true;
+            rock->isExploded = true;
             SplitAsteroid(i);
             game.eliminatedCount++;
-            PlaySound(game.sounds[SOUND_EXPLODE_MEDIUM]);
+            PlaySound(game.ship.soundExplode);
         }
     }
-    if (game.ship.exploded)
+    if (game.ship.isExploded)
     {
         game.lives--;
         if (game.lives > 0)
@@ -139,37 +139,60 @@ void UpdateShip(SpaceShip *ship)
 
 void DrawShip(SpaceShip *ship)
 {
-    if ((game.ship.explosionTimer > EPSILON) && ship->exploded)
-        DrawCircleV(game.ship.position, game.ship.length, Fade(RED, 0.5f));
-    if (ship->exploded) return;
+    // Draw explosion
+    if ((ship->explosionTimer > EPSILON) && ship->isExploded)
+        DrawCircleV(ship->position, ship->length, Fade(RED, 0.5f));
+    if (ship->isExploded) return;
 
     Color shipColor = GRAY;
     Color jetColor = Fade(ORANGE, 0.5f);
 
-    // Draw respawn shield
-    if (game.ship.safeRespawnTimer > 0)
-        DrawCircleV(game.ship.position, game.ship.length, Fade(SKYBLUE, 0.15f));
-
-    // Get and transform ship triangle + jet triangle
-    DrawTriangle(ship->shipPoints[0], ship->shipPoints[1], ship->shipPoints[2], shipColor);
+    // Draw ship + jet triangles
+    // DrawTriangle(ship->shipPoints[0], ship->shipPoints[1], ship->shipPoints[2], shipColor);
     if (ship->isThrusting)
         DrawTriangle(ship->jetPoints[0], ship->jetPoints[1], ship->jetPoints[2], jetColor);
+
+    // Draw ship sprite
+    Texture sprite = game.textures.ship;
+    float spriteScaleX = (ship->width*1.5f)/sprite.width;
+    float spriteScaleY = (ship->length*1.5f)/sprite.height;
+    Rectangle spriteSrc = { 0, 0, sprite.width, sprite.height };
+    Rectangle spriteDest = {
+        ship->position.x, ship->position.y,
+        sprite.width*spriteScaleX,
+        sprite.height*spriteScaleY
+    };
+    Vector2 spriteOrigin = {
+        sprite.width/2*spriteScaleX,
+        sprite.height/2*spriteScaleY };
+    DrawTexturePro(sprite, spriteSrc, spriteDest, spriteOrigin, ship->angle, shipColor);
+
+    // Draw respawn shield
+    if (game.ship.safeRespawnTimer > 0)
+        DrawCircleV(ship->position, ship->length, Fade(SKYBLUE, 0.15f));
 
     // Clones at opposite side of screen
     if (ship->isAtScreenEdge)
     {
         for (unsigned int i = 0; i < 8; i++)
         {
-            Vector2 cloneShip[3];
+            // Vector2 cloneShip[3];
+            Vector2 spriteClonePos = Vector2Add(ship->position, game.wrapOffsets[i]);
+            Rectangle spriteCloneDest = {
+                spriteClonePos.x, spriteClonePos.y,
+                sprite.width*spriteScaleX,
+                sprite.height*spriteScaleY
+            };
             Vector2 cloneJet[3];
-            cloneShip[0] = Vector2Add(ship->shipPoints[0], game.wrapOffsets[i]);
-            cloneShip[1] = Vector2Add(ship->shipPoints[1], game.wrapOffsets[i]);
-            cloneShip[2] = Vector2Add(ship->shipPoints[2], game.wrapOffsets[i]);
+            // cloneShip[0] = Vector2Add(ship->shipPoints[0], game.wrapOffsets[i]);
+            // cloneShip[1] = Vector2Add(ship->shipPoints[1], game.wrapOffsets[i]);
+            // cloneShip[2] = Vector2Add(ship->shipPoints[2], game.wrapOffsets[i]);
             cloneJet[0] = Vector2Add(ship->jetPoints[0], game.wrapOffsets[i]);
             cloneJet[1] = Vector2Add(ship->jetPoints[1], game.wrapOffsets[i]);
             cloneJet[2] = Vector2Add(ship->jetPoints[2], game.wrapOffsets[i]);
 
-            DrawTriangle(cloneShip[0], cloneShip[1], cloneShip[2], shipColor);
+            // DrawTriangle(cloneShip[0], cloneShip[1], cloneShip[2], shipColor);
+            DrawTexturePro(sprite, spriteSrc, spriteCloneDest, spriteOrigin, ship->angle, shipColor);
             if (IsInputActionDown(INPUT_ACTION_THRUST))
                 DrawTriangle(cloneJet[0], cloneJet[1], cloneJet[2], jetColor);
         }
@@ -181,9 +204,9 @@ void UpdateShipTriangles(SpaceShip *ship)
     // Calculate new triangle points for drawing, collision, & screen wrap
     for (unsigned int i = 0; i < 3; i++)
     {
-        ship->shipPoints[i] = Vector2Rotate(game.shipTriangle[i], ship->rotation*DEG2RAD);
+        ship->shipPoints[i] = Vector2Rotate(game.shipTriangle[i], ship->angle*DEG2RAD);
         ship->shipPoints[i] = Vector2Add(ship->shipPoints[i], ship->position);
-        ship->jetPoints[i] = Vector2Rotate(game.jetTriangle[i], (ship->rotation+180)*DEG2RAD);
+        ship->jetPoints[i] = Vector2Rotate(game.jetTriangle[i], (ship->angle+180)*DEG2RAD);
         ship->jetPoints[i] = Vector2Add(ship->jetPoints[i], ship->position);
     }
 }
@@ -192,19 +215,19 @@ void RotateShipToMouse(SpaceShip *ship)
 {
     Vector2 mousePos = GetScaledMousePosition();
     Vector2 mouseDirection = Vector2Subtract(mousePos, ship->position);
-    ship->rotation = (float)atan2(mouseDirection.y, mouseDirection.x)*RAD2DEG + 90;
+    ship->angle = (float)atan2(mouseDirection.y, mouseDirection.x)*RAD2DEG + 90;
 }
 
 void RespawnShip(SpaceShip *ship)
 {
-    ship->exploded = false;
+    ship->isExploded = false;
     ship->isThrusting = false;
     ship->position = (Vector2){ VIRTUAL_WIDTH/2, VIRTUAL_HEIGHT/2 };
     ship->velocity = (Vector2){ 0, 0 };
-    ship->rotation = 90;
+    ship->angle = 90;
     ship->respawnTimer = SHIP_RESPAWN_TIME;
-    if (game.lives != STARTING_LIVES)
-        ship->safeRespawnTimer = SHIP_SAFE_TIME;
+    // if (game.lives != STARTING_LIVES)
+    ship->safeRespawnTimer = SHIP_SAFE_TIME;
 
     UpdateShipTriangles(ship);
 }
@@ -212,27 +235,24 @@ void RespawnShip(SpaceShip *ship)
 void ShootMissile(SpaceShip *ship)
 {
     // spawn bullet
-    if (ship->shotCount == MISSILE_MAX)
-    {
-        ship->shotCount = 0;
-    }
+    if (ship->shotCount == MISSILE_MAX) ship->shotCount = 0;
 
 
     Missile *shot = &ship->missiles[ship->shotCount];
 
-    if (shot->exploded == false)
+    if (shot->isExploded == false)
     {
-        SetSoundPitch(game.sounds[SOUND_SHOOT], 0.75f);
+        SetSoundPitch(ship->soundShoot, 0.75f);
         shot->overheated = true;
     }
     else
     {
-        SetSoundPitch(game.sounds[SOUND_SHOOT], 1.0f);
+        SetSoundPitch(ship->soundShoot, 1.0f);
         shot->overheated = false;
     }
-    shot->exploded = false;
+    shot->isExploded = false;
     shot->explosionTimer = EXPLOSION_TIME;
-    shot->angle = ship->rotation + 180;
+    shot->angle = ship->angle + 180;
     Vector2 spawnPos = { 0, ship->length*0.6f + shot->radius };
     spawnPos = Vector2Rotate(spawnPos, shot->angle*DEG2RAD);
     spawnPos = Vector2Add(spawnPos, ship->position);
@@ -240,5 +260,5 @@ void ShootMissile(SpaceShip *ship)
     shot->despawnTimer = MISSILE_DESPAWN_TIME;
 
     ship->shotCount++;
-    PlaySound(game.sounds[SOUND_SHOOT]);
+    PlaySound(ship->soundShoot);
 }

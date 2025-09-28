@@ -16,12 +16,11 @@
 // Initialization
 // ----------------------------------------------------------------------------
 
-void InitGameState(void)
+void InitGameState(ScreenState screen)
 {
-    game = (GameState){
-        // Game boots to raylib logo animation
-        .currentScreen = SCREEN_LOGO,
+    static bool allocated = false;
 
+    GameState defaults = {
         // Center camera
         .camera.target = (Vector2){ VIRTUAL_WIDTH/2, VIRTUAL_HEIGHT/2 },
 
@@ -32,7 +31,7 @@ void InitGameState(void)
             },
             .width = SHIP_WIDTH,
             .length = SHIP_LENGTH,
-            .rotation = 90.0f, // pointing right
+            .angle = 90.0f, // pointing right
             .respawnTimer = SHIP_RESPAWN_TIME,
         },
 
@@ -44,8 +43,8 @@ void InitGameState(void)
         },
         .jetTriangle = {
             (Vector2){  0, -SHIP_LENGTH*4/5 },
-            (Vector2){ -SHIP_WIDTH/6, -SHIP_WIDTH/2 },
-            (Vector2){  SHIP_WIDTH/6, -SHIP_WIDTH/2 },
+            (Vector2){ -SHIP_WIDTH/6, -SHIP_WIDTH/3 },
+            (Vector2){  SHIP_WIDTH/6, -SHIP_WIDTH/3 },
         },
 
         .wrapOffsets = {
@@ -59,6 +58,7 @@ void InitGameState(void)
             { -VIRTUAL_WIDTH,  VIRTUAL_HEIGHT }  // bottom-left
         },
 
+        .currentScreen = screen,
         .currentLevel = 1,
         .lives = STARTING_LIVES,
     };
@@ -66,31 +66,52 @@ void InitGameState(void)
     // Generate random stars
     for (unsigned int i = 0; i < STAR_AMOUNT; i++)
     {
-        game.stars[i].x = (float)GetRandomValue(0, VIRTUAL_WIDTH);
-        game.stars[i].y = (float)GetRandomValue(0, VIRTUAL_HEIGHT);
+        defaults.stars[i].x = (float)GetRandomValue(0, VIRTUAL_WIDTH);
+        defaults.stars[i].y = (float)GetRandomValue(0, VIRTUAL_HEIGHT);
     }
 
     // Missiles / Shots
     for (unsigned int i = 0; i < MISSILE_MAX; i++)
     {
-        Missile *shot = &game.ship.missiles[i];
+        Missile *shot = &defaults.ship.missiles[i];
         shot->speed = MISSILE_SPEED;
         shot->radius = MISSILE_RADIUS;
-        shot->exploded = true; // aka non-existant
+        shot->isExploded = true; // aka non-existant
     }
 
-    // Get sounds
-    game.sounds[SOUND_MENU] =  LoadSound("assets/menu_beep.wav");
-    game.sounds[SOUND_SHOOT] = LoadSound("assets/shoot.wav");
-    game.sounds[SOUND_EXPLODE_SMALL] =  LoadSound("assets/explode_small.wav");
-    game.sounds[SOUND_EXPLODE_MEDIUM] = LoadSound("assets/explode_medium.wav");
-    game.sounds[SOUND_EXPLODE_BIG] =    LoadSound("assets/explode_big.wav");
+    // Load sound and texture assets
+    if (!allocated)
+    {
+        defaults.sounds.menu =  LoadSound("assets/menu_beep.wav");
+        defaults.sounds.explodeSmall = LoadSound("assets/explode_small.wav");
+        defaults.sounds.explodeMedium = LoadSound("assets/explode_medium.wav");
+        defaults.sounds.explodeBig = LoadSound("assets/explode_big.wav");
+        defaults.ship.soundShoot = LoadSound("assets/shoot.wav");
+        defaults.ship.soundExplode = LoadSound("assets/explode_medium.wav");
+
+        defaults.textures.ship = LoadTexture("assets/ship.png");
+        defaults.textures.asteroidA = LoadTexture("assets/asteroid_a.png");
+        defaults.textures.asteroidB = LoadTexture("assets/asteroid_b.png");
+        defaults.textures.asteroidC = LoadTexture("assets/asteroid_c.png");
+
+        allocated = true;
+    }
+    else // reuse already allocated memory
+    {
+        defaults.sounds.menu =  game.sounds.menu;
+        defaults.rocks = game.rocks;
+
+        defaults.textures.ship = game.textures.ship;
+        defaults.ship.soundExplode = game.ship.soundExplode;
+        defaults.ship.soundShoot = game.ship.soundShoot;
+    }
+
+    game = defaults;
 }
 
 void InitNewLevel(unsigned int newLevel)
 {
     game.currentLevel = newLevel;
-    game.rockCount = 0;
     game.eliminatedCount = 0;
     game.levelFinished = false;
     game.newLevelTimer = NEW_LEVEL_TIMER;
@@ -113,7 +134,9 @@ void InitNewLevel(unsigned int newLevel)
         game.ship.velocity = (Vector2){ 0, 0 };
     }
 
+    // Create new asteroids
     game.rockLimit = 0;
+    game.rockCount = 0;
     for (unsigned int i = 0; i < game.rockCountStartOfLevel; i++)
     {
         unsigned int rockIdx = CreateAsteroidRandom(ASTEROID_SIZE_BIG);
@@ -124,7 +147,7 @@ void InitNewLevel(unsigned int newLevel)
 
     for (unsigned int i = 0; i < MISSILE_MAX; i++)
     {
-        game.ship.missiles[i].exploded = true;
+        game.ship.missiles[i].isExploded = true;
         game.ship.missiles[i].explosionTimer = 0;
     }
     ui.textFade = 1.0f;
@@ -132,9 +155,17 @@ void InitNewLevel(unsigned int newLevel)
 
 void FreeGameState(void)
 {
-    MemFree(game.rocks); // asteroids
-    for (unsigned int i = 0; i < ARRAY_SIZE(game.sounds); i++)
-        UnloadSound(game.sounds[i]); // sounds
+    MemFree(game.rocks);
+    UnloadSound(game.sounds.menu);
+    UnloadSound(game.sounds.explodeSmall);
+    UnloadSound(game.sounds.explodeMedium);
+    UnloadSound(game.sounds.explodeBig);
+    UnloadSound(game.ship.soundExplode);
+    UnloadSound(game.ship.soundShoot);
+    UnloadTexture(game.textures.ship);
+    UnloadTexture(game.textures.asteroidA);
+    UnloadTexture(game.textures.asteroidB);
+    UnloadTexture(game.textures.asteroidC);
 }
 
 // Update & Draw
@@ -178,7 +209,7 @@ void UpdateGameFrame(void)
             ui.currentMenu = UI_MENU_GAMEPLAY;
             ui.textFade = previousTextFade;
         }
-        PlaySound(game.sounds[SOUND_MENU]);
+        PlaySound(game.sounds.menu);
     }
 
     // Update timers
@@ -230,7 +261,7 @@ void DrawGameFrame(void)
     for (unsigned int i = 0; i < game.rockCount; i++)
     {
         Asteroid *rock = &game.rocks[i];
-        if (!rock->exploded)
+        if (!rock->isExploded)
             DrawAsteroid(i);
     }
 
@@ -287,7 +318,7 @@ bool CheckCollisionAsteroidShip(unsigned int rockIdx, SpaceShip *ship)
     // Check each point
     for (unsigned int i = 0; i < 3; i++)
     {
-        Vector2 shipPoint = Vector2Rotate(game.shipTriangle[i], ship->rotation*DEG2RAD);
+        Vector2 shipPoint = Vector2Rotate(game.shipTriangle[i], ship->angle*DEG2RAD);
         shipPoint = Vector2Add(shipPoint, ship->position);
         if (CheckCollisionPointCircle(shipPoint, rock->position, rock->radius))
             return true;
@@ -300,7 +331,7 @@ bool CheckCollisionAsteroidShip(unsigned int rockIdx, SpaceShip *ship)
             Vector2 cloneRockPos = Vector2Add(rock->position, game.wrapOffsets[o]);
             for (unsigned int i = 0; i < 3; i++)
             {
-                Vector2 shipPoint = Vector2Rotate(game.shipTriangle[i], ship->rotation*DEG2RAD);
+                Vector2 shipPoint = Vector2Rotate(game.shipTriangle[i], ship->angle*DEG2RAD);
                 shipPoint = Vector2Add(shipPoint, ship->position);
                 if (CheckCollisionPointCircle(shipPoint, cloneRockPos, rock->radius))
                     return true;

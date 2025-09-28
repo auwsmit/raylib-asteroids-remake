@@ -155,7 +155,7 @@ void UpdateUiFrame(void)
             ui.currentMenu != UI_MENU_PAUSE)
         {
             ChangeUiMenu(UI_MENU_TITLE);
-            PlaySound(game.sounds[SOUND_MENU]);
+            PlaySound(game.sounds.menu);
         }
 
         // Input for menu selection and movement
@@ -258,7 +258,7 @@ void UpdateUiMenuTraverse(void)
     }
 
     if (ui.selectedId != prevId && !ui.firstFrame && !game.touchMode)
-        PlaySound(game.sounds[SOUND_MENU]);
+        PlaySound(game.sounds.menu);
 
     ui.firstFrame = false;
 }
@@ -271,7 +271,7 @@ void UpdateUiMenuTraverse(void)
 //     if (IsMouseWithinUiButton(button))
 //     {
 //         // if (!button->mouseHovered)
-//         //     PlaySound(game.sounds[SOUND_MENU]);
+//         //     PlaySound(game.sounds.menu);
 //         button->mouseHovered = true;
 //         ui.mouseInUse = true;
 //     }
@@ -297,7 +297,7 @@ void UpdateUiButtonSelect(UiButton *button)
         if (button->buttonId == UI_BID_PAUSE)
         {
             ChangeUiMenu(UI_MENU_PAUSE);
-            PlaySound(game.sounds[SOUND_MENU]);
+            PlaySound(game.sounds.menu);
             button->clicked = true;
         }
     }
@@ -332,7 +332,7 @@ void UpdateUiButtonSelect(UiButton *button)
                 ChangeUiMenu(UI_MENU_GAMEPLAY);
         }
 
-        PlaySound(game.sounds[SOUND_MENU]);
+        PlaySound(game.sounds.menu);
     }
 }
 
@@ -398,12 +398,10 @@ void ChangeUiMenu(UiMenuState newMenu)
 {
     if (newMenu == UI_MENU_TITLE)
     {
-        // Clear old game state if returning from gameplay
+        // Reset game state if returning from gameplay
         if (game.currentScreen == SCREEN_GAMEPLAY)
         {
-            FreeGameState();
-            InitGameState();
-            game.currentScreen = SCREEN_TITLE;
+            InitGameState(SCREEN_TITLE);
         }
 
         ui.selectedId = UI_BID_START;
@@ -623,10 +621,10 @@ void DrawUiAnalogStick(UiAnalogStick *stick)
 void DrawLives(void)
 {
     const char* text = "Lives: ";
-    int textWidth = MeasureText(text, UI_FONT_SIZE_EDGE);
+    const int textWidth = MeasureText(text, UI_FONT_SIZE_EDGE);
     DrawText(text, UI_EDGE_PADDING, UI_EDGE_PADDING, UI_FONT_SIZE_EDGE, RAYWHITE);
-    float scale = 1.10f; // compared to actual ship
-    float spacing = game.ship.width*scale/8;
+    const float scale = UI_FONT_SIZE_EDGE*0.95/game.ship.length;
+    const float spacing = game.ship.width*scale/8;
     Vector2 lifeTriangle[3] = { 0 };
 
     for (unsigned int i = 0; i < 3; i++)
@@ -677,7 +675,7 @@ void DrawCenterText(void)
             text = TextFormat("LEVEL %i", game.currentLevel);
         centerText = true;
     }
-    else if (game.ship.exploded)
+    else if (game.ship.isExploded)
     {
         if (game.ship.respawnTimer < SHIP_RESPAWN_TIME)
             text = "RESPAWNING...";
@@ -688,7 +686,7 @@ void DrawCenterText(void)
         centerText = true;
     }
 
-    if (game.delayTimer > EPSILON && !game.levelFinished && !game.ship.exploded)
+    if (game.delayTimer > EPSILON && !game.levelFinished && !game.ship.isExploded)
     {
         centerText = false;
         ui.textFade = 1.0f;

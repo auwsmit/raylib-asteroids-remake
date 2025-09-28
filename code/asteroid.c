@@ -9,18 +9,29 @@ unsigned int CreateAsteroid(SizeOfAsteroid size, Vector2 position, float angle, 
     game.rocks = MemRealloc(game.rocks, game.rockCount*sizeof(Asteroid));
     unsigned int rockIdx = game.rockCount - 1;
     Asteroid *rock = &game.rocks[rockIdx];
-    *rock = (Asteroid){ 0 };
-    rock->exploded = false;
-    rock->color = color;
 
-    // radius
+    *rock = (Asteroid){ 0 };
+    rock->isExploded = false;
+    rock->color = color;
     rock->size = size;
-    if (size == ASTEROID_SIZE_BIG)
-        rock->radius = ASTEROID_RADIUS_BIG;
-    else if (size == ASTEROID_SIZE_MEDIUM)
-        rock->radius = ASTEROID_RADIUS_MEDIUM;
-    else if (size == ASTEROID_SIZE_SMALL)
+    if (size == ASTEROID_SIZE_SMALL)
+    {
         rock->radius = ASTEROID_RADIUS_SMALL;
+        rock->soundExplode = &game.sounds.explodeSmall;
+        rock->sprite = &game.textures.asteroidA;
+    }
+    else if (size == ASTEROID_SIZE_MEDIUM)
+    {
+        rock->radius = ASTEROID_RADIUS_MEDIUM;
+        rock->soundExplode = &game.sounds.explodeMedium;
+        rock->sprite = &game.textures.asteroidB;
+    }
+    else if (size == ASTEROID_SIZE_BIG)
+    {
+        rock->radius = ASTEROID_RADIUS_BIG;
+        rock->soundExplode = &game.sounds.explodeBig;
+        rock->sprite = &game.textures.asteroidC;
+    }
     unsigned int newRockAdd = 1;
     for (int i = rock->size; i >= 0; i--)
         newRockAdd *= 2;
@@ -98,7 +109,7 @@ void SplitAsteroid(unsigned int rockIdx)
 void UpdateAsteroid(unsigned int rockIdx)
 {
     Asteroid *rock = &game.rocks[rockIdx];
-    if (rock->exploded) return;
+    if (rock->isExploded) return;
 
     // Update position
     Vector2 currentVelocity = (Vector2){ 0, rock->speed*game.frameTime };
@@ -111,11 +122,11 @@ void UpdateAsteroid(unsigned int rockIdx)
     for (unsigned int i = 0; i < MISSILE_MAX; i++)
     {
         Missile *shot = &game.ship.missiles[i];
-        if (!shot->exploded && CheckCollisionCircles(rock->position, rock->radius,
+        if (!shot->isExploded && CheckCollisionCircles(rock->position, rock->radius,
                                                      shot->position, shot->radius))
         {
-            rock->exploded = true;
-            shot->exploded = true;
+            rock->isExploded = true;
+            shot->isExploded = true;
         }
 
         if (rock->isAtScreenEdge)
@@ -123,41 +134,54 @@ void UpdateAsteroid(unsigned int rockIdx)
             for (unsigned int o = 0; o < 8; o++)
             {
                 Vector2 cloneRockPos = Vector2Add(rock->position, game.wrapOffsets[o]);
-                if (!shot->exploded && CheckCollisionCircles(cloneRockPos, rock->radius,
+                if (!shot->isExploded && CheckCollisionCircles(cloneRockPos, rock->radius,
                                                              shot->position, shot->radius))
                 {
-                    rock->exploded = true;
-                    shot->exploded = true;
+                    rock->isExploded = true;
+                    shot->isExploded = true;
                 }
             }
         }
     }
 
-    if (rock->exploded)
+    if (rock->isExploded)
     {
         game.eliminatedCount++;
         SplitAsteroid(rockIdx);
-        Sound explosion = game.sounds[SOUND_EXPLODE_SMALL];
-        if (rock->size == ASTEROID_SIZE_MEDIUM)
-            explosion = game.sounds[SOUND_EXPLODE_MEDIUM];
-        else if (rock->size == ASTEROID_SIZE_BIG)
-            explosion = game.sounds[SOUND_EXPLODE_BIG];
-        PlaySound(explosion);
+        PlaySound(*game.rocks[rockIdx].soundExplode);
     }
 }
 
 void DrawAsteroid(unsigned int rockIdx)
 {
     Asteroid *rock = &game.rocks[rockIdx];
-    DrawCircleV((Vector2){ rock->position.x, rock->position.y }, rock->radius, rock->color);
+    // DrawCircleV((Vector2){ rock->position.x, rock->position.y }, rock->radius, rock->color);
+
+    Texture *sprite = rock->sprite;
+    float spriteScale = rock->radius*2.80/sprite->width;
+    Rectangle spriteSrc = { 0, 0, sprite->width, sprite->height };
+    Rectangle spriteDest = {
+        rock->position.x, rock->position.y,
+        sprite->width*spriteScale, sprite->height*spriteScale
+    };
+    Vector2 spriteOrigin = {
+        sprite->width/2*spriteScale,
+        sprite->height/2*spriteScale };
+    DrawTexturePro(*sprite, spriteSrc, spriteDest, spriteOrigin, rock->angle, rock->color);
 
     // Clones at opposite side of screen
     if (rock->isAtScreenEdge)
     {
         for (unsigned int i = 0; i < 8; i++)
         {
-            Vector2 cloneAsteroid = Vector2Add(rock->position, game.wrapOffsets[i]);
-            DrawCircleV((Vector2){ cloneAsteroid.x, cloneAsteroid.y }, rock->radius, rock->color);
+            Vector2 spriteClonePos = Vector2Add(rock->position, game.wrapOffsets[i]);
+            Rectangle spriteCloneDest = {
+                spriteClonePos.x, spriteClonePos.y,
+                sprite->width*spriteScale, sprite->height*spriteScale
+            };
+            DrawTexturePro(*sprite, spriteSrc, spriteCloneDest, spriteOrigin, rock->angle, rock->color);
+            // Vector2 cloneAsteroid = Vector2Add(rock->position, game.wrapOffsets[i]);
+            // DrawCircleV((Vector2){ cloneAsteroid.x, cloneAsteroid.y }, rock->radius, rock->color);
         }
     }
 }

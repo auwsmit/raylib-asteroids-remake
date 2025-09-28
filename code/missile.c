@@ -4,7 +4,7 @@
 
 void UpdateMissile(Missile *shot)
 {
-    if (shot->exploded)
+    if (shot->isExploded)
     {
         shot->explosionTimer -= game.frameTime;
         return;
@@ -22,16 +22,16 @@ void UpdateMissile(Missile *shot)
     shot->despawnTimer -= game.frameTime;
     if (shot->despawnTimer <= 0)
     {
-        shot->exploded = true;
+        shot->isExploded = true;
         shot->explosionTimer = 0.0f;
     }
 }
 
 void DrawMissile(Missile *shot)
 {
-    if ((shot->explosionTimer > EPSILON) && shot->exploded)
+    if ((shot->explosionTimer > EPSILON) && shot->isExploded)
         DrawCircleV(shot->position, shot->radius*5, Fade(MAROON, 0.5f));
-    if (shot->exploded) return;
+    if (shot->isExploded) return;
 
     Color missileColor = RAYWHITE;
 

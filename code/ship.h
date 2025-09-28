@@ -24,12 +24,15 @@
 // ----------------------------------------------------------------------------
 
 typedef struct SpaceShip {
+    Texture sprite;
+    Sound soundExplode;
+    Sound soundShoot;
     Missile missiles[MISSILE_MAX];
     Vector2 position;
-    Vector2 shipPoints[3];
+    Vector2 shipPoints[3]; // used for collision
     Vector2 jetPoints[3];
     Vector2 velocity;
-    float rotation; // in degrees, 0 is pointing up, 90 is right
+    float angle; // in degrees, 0 is pointing up, 90 is right
     float width;
     float length;
     float autoFireTimer;
@@ -39,7 +42,7 @@ typedef struct SpaceShip {
     unsigned int shotCount;
     bool isThrusting;
     bool isAtScreenEdge;
-    bool exploded;
+    bool isExploded;
 } SpaceShip;
 
 
