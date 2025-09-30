@@ -32,12 +32,20 @@ typedef enum InputAction {
     INPUT_ACTION_SHOOT,
 } InputAction;
 
-typedef struct InputMappings {
+typedef struct TouchState {
+    Vector2 position;
+    bool pressedPreviousFrame;
+    bool pressedCurrentFrame;
+    int currentButton;
+} TouchState;
+
+typedef struct InputState {
     KeyboardKey keyMaps[INPUT_ACTIONS_COUNT][INPUT_MAX_MAPS];
     MouseButton mouseMaps[INPUT_ACTIONS_COUNT][INPUT_MAX_MAPS];
     // GamepadButton gamepadButtonMaps[INPUT_ACTIONS_COUNT][INPUT_MAX_MAPS];
-    bool virtualButtonMap[INPUT_ACTIONS_COUNT];
-} InputMappings;
+    bool virtualButtonPressed[INPUT_ACTIONS_COUNT];
+    TouchState touchPoints[INPUT_MAX_TOUCH_POINTS];
+} InputState;
 
 // Prototypes
 // ----------------------------------------------------------------------------
@@ -51,6 +59,9 @@ bool IsInputActionMouseDown(InputAction action);
 
 // Touch / Virtual Input
 void SetVirtualInput(InputAction action, bool buttonPressed);
+void SetTouchPointButton(int index, int buttonIdx);
+bool IsTouchTapped(int index); // Check if a touch point was tapped
+bool IsTouchPressingButton(int index); // Check if a touch point is in any button
 int CheckCollisionTouchCircle(Vector2 center, float radius); // Check if any touch points are within a circle, returns index to touch point or -1
 int CheckCollisionTouchRec(Rectangle rec); // Check if any touch points are within a rectangle, returns index to touch point or -1
 

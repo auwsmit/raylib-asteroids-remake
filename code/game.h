@@ -49,7 +49,6 @@ typedef struct GameState {
     Camera2D camera;
     SpaceShip ship;
     Asteroid *rocks;
-    Vector2 touchPositions[INPUT_MAX_TOUCH_POINTS];
     Vector2 stars[STAR_AMOUNT];
     Vector2 shipTriangle[3];
     Vector2 jetTriangle[3];

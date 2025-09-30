@@ -7,13 +7,13 @@
 #include "game.h"
 
 // Global struct to track input key mappings
-InputMappings gameInput = { 0 };
+InputState gameInput = { 0 };
 
 // Input Actions
 // ----------------------------------------------------------------------------
 void InitDefaultInputControls(void)
 {
-    InputMappings defaultControls = {
+    InputState defaultControls = {
         // Global across program
         .keyMaps[INPUT_ACTION_FULLSCREEN] = {
             KEY_LEFT_ALT, KEY_ENTER,
@@ -39,6 +39,9 @@ void InitDefaultInputControls(void)
         .mouseMaps[INPUT_ACTION_SHOOT] =   { INPUT_MOUSE_LEFT_BUTTON },
     };
 
+    for (unsigned int i = 0; i < INPUT_MAX_TOUCH_POINTS; ++i)
+        gameInput.touchPoints[i].currentButton = -1;
+
     gameInput = defaultControls;
 }
 
@@ -54,7 +57,7 @@ bool IsInputKeyModifier(KeyboardKey key)
 bool IsInputActionPressed(InputAction action)
 {
     // Check virtual button
-    if (gameInput.virtualButtonMap[action] == true)
+    if (gameInput.virtualButtonPressed[action] == true)
         return true;
 
     KeyboardKey* keys = gameInput.keyMaps[action];
@@ -112,7 +115,7 @@ bool IsInputActionMousePressed(InputAction action)
 
 bool IsInputActionDown(InputAction action)
 {
-    if (gameInput.virtualButtonMap[action] == true)
+    if (gameInput.virtualButtonPressed[action] == true)
         return true;
 
     KeyboardKey* keys = gameInput.keyMaps[action];
@@ -170,14 +173,30 @@ bool IsInputActionMouseDown(InputAction action)
 // ----------------------------------------------------------------------------
 void SetVirtualInput(InputAction action, bool buttonPressed)
 {
-    gameInput.virtualButtonMap[action] = buttonPressed;
+    gameInput.virtualButtonPressed[action] = buttonPressed;
+}
+
+void SetTouchPointButton(int index, int buttonIdx)
+{
+    gameInput.touchPoints[index].currentButton = buttonIdx;
+}
+
+bool IsTouchTapped(int index)
+{
+    return (gameInput.touchPoints[index].pressedCurrentFrame &&
+            !gameInput.touchPoints[index].pressedPreviousFrame);
+}
+
+bool IsTouchPressingButton(int index)
+{
+    return gameInput.touchPoints[index].currentButton != -1;
 }
 
 int CheckCollisionTouchCircle(Vector2 center, float radius)
 {
     for (int i = 0; i < game.touchCount; ++i)
     {
-        if (CheckCollisionPointCircle(game.touchPositions[i], center, radius))
+        if (CheckCollisionPointCircle(gameInput.touchPoints[i].position, center, radius))
             return i;
     }
 
@@ -188,7 +207,7 @@ int CheckCollisionTouchRec(Rectangle rec)
 {
     for (int i = 0; i < game.touchCount; ++i)
     {
-        if (CheckCollisionPointRec(game.touchPositions[i], rec))
+        if (CheckCollisionPointRec(gameInput.touchPoints[i].position, rec))
             return i;
     }
 
@@ -213,8 +232,14 @@ int UpdateInputTouchPoints(void)
     for (int i = 0; i < tCount; ++i)
     {
         Vector2 touchPosition = GetScreenToWorld2D(GetTouchPosition(i), game.camera);
-        game.touchPositions[i] = touchPosition;
+        gameInput.touchPoints[i].position = touchPosition;
+        gameInput.touchPoints[i].pressedPreviousFrame = gameInput.touchPoints[i].pressedCurrentFrame;
+        gameInput.touchPoints[i].pressedCurrentFrame = (GetTouchPointId(i) != -1);
     }
+
+    for (int i = 0; i < INPUT_MAX_TOUCH_POINTS; ++i)
+        if (GetTouchPointId(i) == -1)
+            gameInput.touchPoints[i].currentButton = -1;
 
     return tCount;
 }

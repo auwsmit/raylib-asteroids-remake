@@ -348,19 +348,21 @@ void UpdateUiVirtualInput(UiButton *button)
 
     SetVirtualInput(buttonInputAction, buttonTapped);
     button->clicked = buttonTapped;
+    if (buttonTapped)
+        SetTouchPointButton(touchIdx, (int)button->buttonId);
 }
 
 void UpdateUiAnalogStick(UiAnalogStick *stick)
 {
     Vector2 touchPos = { 0 };
-    int touchIdx = -1;
+    int touchIdx;
     if (stick->lastTouchIdx != -1)
         touchIdx = stick->lastTouchIdx;
-    if (touchIdx == -1)
+    else
         touchIdx = CheckCollisionTouchCircle(stick->centerPos, stick->centerRadius);
 
     // not touching analog stick
-    if (touchIdx == -1 || game.touchCount == 0)
+    if (touchIdx == -1 || game.touchCount == 0 || IsTouchPressingButton(touchIdx))
     {
         stick->stickPos = stick->centerPos;
         stick->isActive = false;
@@ -448,10 +450,11 @@ int IsTouchWithinUiButton(UiButton *button)
 
 bool IsUiButtonPressed(UiButton *button)
 {
-    if (IsTouchWithinUiButton(button) != -1)
+    int touchIdx = IsTouchWithinUiButton(button);
+    if (touchIdx != -1 && IsTouchTapped(touchIdx))
         return true;
 
-    if (IsMouseWithinUiButton(button) && IsMouseButtonDown(MOUSE_LEFT_BUTTON))
+    if (IsMouseWithinUiButton(button) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
         return true;
 
     return false;
@@ -533,10 +536,11 @@ void DrawUiFrame(void)
     }
 
     // Debug:
+    // Color touchColors[10] = { RED, BLUE, GREEN, YELLOW, ORANGE, PURPLE, BROWN, WHITE, GRAY, MAGENTA };
     // for (int i = 0; i < game.touchCount; ++i)
     // {
     //     Vector2 touchPosition = GetScreenToWorld2D(GetTouchPosition(i), game.camera);
-    //     DrawCircleV(touchPosition, 100.0f, RAYWHITE);
+    //     DrawCircleV(touchPosition, 200.0f, touchColors[i]);
     // }
     // const int textSize = 50;
     // int textY = 100;
