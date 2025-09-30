@@ -27,10 +27,12 @@ typedef struct Asteroid {
     Vector2 position;
     Vector2 velocity;
     float angle;
+    float spriteAngle;
     float speed;
     float radius;
     SizeOfAsteroid size;
     bool isAtScreenEdge;
+    bool rotateLeft;
     bool isExploded;
 } Asteroid;
 

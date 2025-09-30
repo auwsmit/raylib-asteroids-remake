@@ -35,6 +35,7 @@ typedef enum InputAction {
 typedef struct InputMappings {
     KeyboardKey keyMaps[INPUT_ACTIONS_COUNT][INPUT_MAX_MAPS];
     MouseButton mouseMaps[INPUT_ACTIONS_COUNT][INPUT_MAX_MAPS];
+    // GamepadButton gamepadButtonMaps[INPUT_ACTIONS_COUNT][INPUT_MAX_MAPS];
     bool virtualButtonMap[INPUT_ACTIONS_COUNT];
 } InputMappings;
 
@@ -44,15 +45,17 @@ typedef struct InputMappings {
 void InitDefaultInputControls(void); // Sets the default key mapping control scheme
 bool IsInputKeyModifier(KeyboardKey key);
 bool IsInputActionPressed(InputAction action);
+bool IsInputActionMousePressed(InputAction action);
 bool IsInputActionDown(InputAction action);
 bool IsInputActionMouseDown(InputAction action);
 
 // Touch / Virtual Input
 void SetVirtualInput(InputAction action, bool buttonPressed);
-int CheckCollisionTouchCircle(Vector2 center, float radius);
-int CheckCollisionTouchRec(Rectangle rec);
+int CheckCollisionTouchCircle(Vector2 center, float radius); // Check if any touch points are within a circle, returns index to touch point or -1
+int CheckCollisionTouchRec(Rectangle rec); // Check if any touch points are within a rectangle, returns index to touch point or -1
 
 // Helpers
+// int CheckAvailableGamepads(void);
 int UpdateInputTouchPoints(void);
 Vector2 GetScaledMousePosition(void);
 

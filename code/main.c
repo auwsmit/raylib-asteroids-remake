@@ -104,6 +104,7 @@ void UpdateDrawFrame(void)
 
     // Global updates
     game.frameTime = GetFrameTime();
+    // game.gamepad = CheckAvailableGamepads();
     game.touchCount = UpdateInputTouchPoints();
     game.anyKeyPressed = (GetKeyPressed() != 0);
     if (game.touchCount == 0)

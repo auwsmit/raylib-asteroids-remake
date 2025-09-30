@@ -237,19 +237,8 @@ void ShootMissile(SpaceShip *ship)
     // spawn bullet
     if (ship->shotCount == MISSILE_MAX) ship->shotCount = 0;
 
-
     Missile *shot = &ship->missiles[ship->shotCount];
 
-    if (shot->isExploded == false)
-    {
-        SetSoundPitch(ship->soundShoot, 0.75f);
-        shot->overheated = true;
-    }
-    else
-    {
-        SetSoundPitch(ship->soundShoot, 1.0f);
-        shot->overheated = false;
-    }
     shot->isExploded = false;
     shot->explosionTimer = EXPLOSION_TIME;
     shot->angle = ship->angle + 180;

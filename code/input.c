@@ -85,6 +85,17 @@ bool IsInputActionPressed(InputAction action)
     }
 
     // Check mouse buttons
+    if (IsInputActionMousePressed(action))
+        return true;
+
+    // Check controller buttons
+    // TODO
+
+    return false;
+}
+
+bool IsInputActionMousePressed(InputAction action)
+{
     MouseButton* mb = gameInput.mouseMaps[action];
     for (unsigned int i = 0; i < INPUT_MAX_MAPS && mb[i] != 0; i++)
     {
@@ -129,15 +140,18 @@ bool IsInputActionDown(InputAction action)
             return true;
     }
 
+    // Check mouse buttons
     if (IsInputActionMouseDown(action))
         return true;
+
+    // Check controller buttons
+    // TODO
 
     return false;
 }
 
 bool IsInputActionMouseDown(InputAction action)
 {
-    // Check mouse buttons
     MouseButton* mb = gameInput.mouseMaps[action];
     for (unsigned int i = 0; i < INPUT_MAX_MAPS && mb[i] != 0; i++)
     {
@@ -183,6 +197,11 @@ int CheckCollisionTouchRec(Rectangle rec)
 
 // Helpers
 // ----------------------------------------------------------------------------
+
+// int CheckAvailableGamepads(void)
+// {
+//     // TODO
+// }
 
 int UpdateInputTouchPoints(void)
 {

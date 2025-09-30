@@ -40,6 +40,8 @@ unsigned int CreateAsteroid(SizeOfAsteroid size, Vector2 position, float angle, 
     // position & angle
     rock->position = position;
     rock->angle = angle;
+    rock->spriteAngle = (float)GetRandomValue(0, 180);
+    rock->rotateLeft = GetRandomValue(0, 1);
 
     // Speed proportional to size
     float radiusRange = ASTEROID_RADIUS_BIG - ASTEROID_RADIUS_SMALL;
@@ -47,7 +49,6 @@ unsigned int CreateAsteroid(SizeOfAsteroid size, Vector2 position, float angle, 
     scaledSpeed = ASTEROID_SPEED*(ASTEROID_RADIUS_BIG - rock->radius)/radiusRange;
     if (scaledSpeed < ASTEROID_SPEED/8) // minimum speed
         scaledSpeed = ASTEROID_SPEED/8;
-
     rock->speed = scaledSpeed;
 
     return rockIdx;
@@ -144,6 +145,10 @@ void UpdateAsteroid(unsigned int rockIdx)
         }
     }
 
+    float spriteRotation = fmodf((float)(rock->speed / 120), 180);
+    if (rock->rotateLeft) spriteRotation = -spriteRotation;
+    rock->spriteAngle += spriteRotation;
+
     if (rock->isExploded)
     {
         game.eliminatedCount++;
@@ -155,7 +160,6 @@ void UpdateAsteroid(unsigned int rockIdx)
 void DrawAsteroid(unsigned int rockIdx)
 {
     Asteroid *rock = &game.rocks[rockIdx];
-    // DrawCircleV((Vector2){ rock->position.x, rock->position.y }, rock->radius, rock->color);
 
     Texture *sprite = rock->sprite;
     float spriteScale = rock->radius*2.80/sprite->width;
@@ -167,7 +171,7 @@ void DrawAsteroid(unsigned int rockIdx)
     Vector2 spriteOrigin = {
         sprite->width/2*spriteScale,
         sprite->height/2*spriteScale };
-    DrawTexturePro(*sprite, spriteSrc, spriteDest, spriteOrigin, rock->angle, rock->color);
+    DrawTexturePro(*sprite, spriteSrc, spriteDest, spriteOrigin, rock->spriteAngle, rock->color);
 
     // Clones at opposite side of screen
     if (rock->isAtScreenEdge)
@@ -179,9 +183,7 @@ void DrawAsteroid(unsigned int rockIdx)
                 spriteClonePos.x, spriteClonePos.y,
                 sprite->width*spriteScale, sprite->height*spriteScale
             };
-            DrawTexturePro(*sprite, spriteSrc, spriteCloneDest, spriteOrigin, rock->angle, rock->color);
-            // Vector2 cloneAsteroid = Vector2Add(rock->position, game.wrapOffsets[i]);
-            // DrawCircleV((Vector2){ cloneAsteroid.x, cloneAsteroid.y }, rock->radius, rock->color);
+            DrawTexturePro(*sprite, spriteSrc, spriteCloneDest, spriteOrigin, rock->spriteAngle, rock->color);
         }
     }
 }

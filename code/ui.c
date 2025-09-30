@@ -353,44 +353,39 @@ void UpdateUiVirtualInput(UiButton *button)
 void UpdateUiAnalogStick(UiAnalogStick *stick)
 {
     Vector2 touchPos = { 0 };
-    bool touchActive = false;
     int touchIdx = -1;
     if (stick->lastTouchIdx != -1)
         touchIdx = stick->lastTouchIdx;
     if (touchIdx == -1)
         touchIdx = CheckCollisionTouchCircle(stick->centerPos, stick->centerRadius);
 
-    if (touchIdx == -1 || game.touchCount == 0) // not touching analog stick
+    // not touching analog stick
+    if (touchIdx == -1 || game.touchCount == 0)
     {
         stick->stickPos = stick->centerPos;
         stick->isActive = false;
-        stick->lastTouchIdx = touchIdx;
+        stick->lastTouchIdx = -1;
         return;
     }
-    else // is touching analog stick
-    {
-        touchActive = true;
-        touchPos = GetScreenToWorld2D(GetTouchPosition(touchIdx), game.camera);
-        stick->lastTouchIdx = touchIdx;
-    }
 
-    if (touchActive)
+    // is touching analog stick
+    stick->lastTouchIdx = touchIdx;
+    touchPos = GetScreenToWorld2D(GetTouchPosition(touchIdx), game.camera);
+
+    bool isTouchWithinStick =
+        CheckCollisionPointCircle(touchPos, stick->centerPos, stick->centerRadius);
+    if (isTouchWithinStick)
     {
-        bool touchOutsideStickRange =
-            CheckCollisionPointCircle(touchPos, stick->centerPos, stick->centerRadius);
-        if (touchOutsideStickRange)
-        {
-            stick->stickPos = touchPos;
-            stick->isActive = true;
-        }
-        else if (stick->isActive)
-        {
-            Vector2 direction = Vector2Subtract(touchPos, stick->centerPos);
-            float distance = Vector2Length(direction);
-            if (distance > stick->centerRadius)
-                direction = Vector2Scale(direction, stick->centerRadius / distance);
-            stick->stickPos = Vector2Add(stick->centerPos, direction);
-        }
+        stick->stickPos = touchPos;
+        stick->isActive = true;
+    }
+    else if (stick->isActive) // calculate position for edge of stick
+    {
+        Vector2 direction = Vector2Subtract(touchPos, stick->centerPos);
+        float distance = Vector2Length(direction);
+        if (distance > stick->centerRadius)
+            direction = Vector2Scale(direction, stick->centerRadius / distance);
+        stick->stickPos = Vector2Add(stick->centerPos, direction);
     }
 }
 

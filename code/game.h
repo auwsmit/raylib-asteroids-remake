@@ -69,8 +69,8 @@ typedef struct GameState {
     bool touchMode;
     bool isPaused;
     bool levelFinished;
-    bool gameShouldExit;
     bool resumeInputCooldown;
+    bool gameShouldExit;
 } GameState;
 
 extern GameState game; // global declaration
