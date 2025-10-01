@@ -229,17 +229,16 @@ int UpdateInputTouchPoints(void)
 
     if (tCount > INPUT_MAX_TOUCH_POINTS)
         tCount = INPUT_MAX_TOUCH_POINTS;
-    for (int i = 0; i < tCount; ++i)
+    for (int i = 0; i < tCount; i++)
     {
         Vector2 touchPosition = GetScreenToWorld2D(GetTouchPosition(i), game.camera);
         gameInput.touchPoints[i].position = touchPosition;
         gameInput.touchPoints[i].pressedPreviousFrame = gameInput.touchPoints[i].pressedCurrentFrame;
-        gameInput.touchPoints[i].pressedCurrentFrame = (GetTouchPointId(i) != -1);
+        gameInput.touchPoints[i].pressedCurrentFrame = (GetTouchPointId(i) < tCount);
     }
 
-    for (int i = 0; i < INPUT_MAX_TOUCH_POINTS; ++i)
-        if (GetTouchPointId(i) == -1)
-            gameInput.touchPoints[i].currentButton = -1;
+    for (int i = 0; i < INPUT_MAX_TOUCH_POINTS; i++)
+        gameInput.touchPoints[i].currentButton = -1;
 
     return tCount;
 }

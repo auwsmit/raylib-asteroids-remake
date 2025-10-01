@@ -162,8 +162,8 @@ void DrawAsteroid(unsigned int rockIdx)
     Asteroid *rock = &game.rocks[rockIdx];
 
     Texture *sprite = rock->sprite;
-    float spriteScale = rock->radius*2.80/sprite->width;
-    Rectangle spriteSrc = { 0, 0, sprite->width, sprite->height };
+    float spriteScale = rock->radius*2.80f/sprite->width;
+    Rectangle spriteSrc = { 0.0f, 0.0f, (float)sprite->width, (float)sprite->height };
     Rectangle spriteDest = {
         rock->position.x, rock->position.y,
         sprite->width*spriteScale, sprite->height*spriteScale

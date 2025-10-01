@@ -156,7 +156,7 @@ void DrawShip(SpaceShip *ship)
     Texture sprite = game.textures.ship;
     float spriteScaleX = (ship->width*1.5f)/sprite.width;
     float spriteScaleY = (ship->length*1.5f)/sprite.height;
-    Rectangle spriteSrc = { 0, 0, sprite.width, sprite.height };
+    Rectangle spriteSrc = { 0.0f, 0.0f, (float)sprite.width, (float)sprite.height };
     Rectangle spriteDest = {
         ship->position.x, ship->position.y,
         sprite.width*spriteScaleX,

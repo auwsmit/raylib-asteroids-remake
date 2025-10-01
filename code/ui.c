@@ -49,24 +49,19 @@ void InitUiState(void)
     // Pause button
     int pauseTextLength = MeasureText("Pause", UI_FONT_SIZE_EDGE);
     float pausePosX = (float)(VIRTUAL_WIDTH - pauseTextLength)/2;
-    float pausePosY = (float)(VIRTUAL_HEIGHT - UI_FONT_SIZE_EDGE -
-                              UI_EDGE_PADDING - UI_BUTTON_PADDING);
+    float pausePosY = (float)(VIRTUAL_HEIGHT - UI_FONT_SIZE_EDGE - UI_EDGE_PADDING - UI_BUTTON_PADDING);
     uiDefaults.pause = InitUiButton("Pause", UI_BID_PAUSE, pausePosX, pausePosY, UI_FONT_SIZE_EDGE);
 
     // Virtual thrust button
     int flyTextLength = MeasureText("Thrust", UI_FONT_SIZE_EDGE);
-    float flyPosX = (float)(VIRTUAL_WIDTH - flyTextLength -
-                            UI_EDGE_PADDING - UI_BUTTON_PADDING);
-    float flyPosY = (float)(VIRTUAL_HEIGHT - UI_FONT_SIZE_EDGE -
-                            UI_EDGE_PADDING - UI_BUTTON_PADDING);
+    float flyPosX = (float)(VIRTUAL_WIDTH - flyTextLength - UI_EDGE_PADDING - UI_BUTTON_PADDING);
+    float flyPosY = (float)(VIRTUAL_HEIGHT - UI_FONT_SIZE_EDGE - UI_EDGE_PADDING - UI_BUTTON_PADDING);
     uiDefaults.fly = InitUiButton("Thrust", UI_BID_THRUST, flyPosX, flyPosY, UI_FONT_SIZE_EDGE);
 
     // Virtual shoot button
     int shootTextLength = MeasureText("Shoot", UI_FONT_SIZE_EDGE);
-    float shootPosX = (float)(flyPosX - shootTextLength -
-                            UI_EDGE_PADDING - UI_BUTTON_PADDING);
-    float shootPosY = (float)(VIRTUAL_HEIGHT - UI_FONT_SIZE_EDGE -
-                            UI_EDGE_PADDING - UI_BUTTON_PADDING);
+    float shootPosX = (float)(flyPosX - shootTextLength - UI_EDGE_PADDING - UI_BUTTON_PADDING);
+    float shootPosY = (float)(VIRTUAL_HEIGHT - UI_FONT_SIZE_EDGE - UI_EDGE_PADDING - UI_BUTTON_PADDING);
     uiDefaults.shoot = InitUiButton("Shoot", UI_BID_SHOOT, shootPosX, shootPosY, UI_FONT_SIZE_EDGE);
 
     // Virtual analog stick
@@ -75,14 +70,14 @@ void InitUiState(void)
     uiDefaults.stick.stickPos = uiDefaults.stick.centerPos;
     uiDefaults.stick.centerRadius = UI_STICK_RADIUS;
     uiDefaults.stick.stickRadius = UI_STICK_RADIUS/2;
-    uiDefaults.stick.lastTouchIdx = -1;
+    uiDefaults.stick.lastTouchId = -1;
 
     ui = uiDefaults;
 }
 
 UiButton InitUiTitle(char *text)
 {
-    static UiButton *previousTitleLine = 0;
+    static bool previousTitleLine = false;
 
     int fontSize = UI_TITLE_SIZE;
     int textWidth = MeasureText(text, fontSize);
@@ -92,11 +87,11 @@ UiButton InitUiTitle(char *text)
 #else
         float titlePosY = UI_TITLE_TOP_PADDING + UI_TITLE_BUTTON_SIZE;
 #endif
-    if (previousTitleLine != 0)
+    if (previousTitleLine)
         titlePosY += UI_TITLE_SIZE + 10;
 
     UiButton title = InitUiButton(text, -1, titlePosX, titlePosY, fontSize);
-    previousTitleLine = &title;
+    previousTitleLine = true;
 
     return title;
 }
@@ -287,12 +282,13 @@ void UpdateUiButtonSelect(UiButton *button)
     int touchIdx = IsTouchWithinUiButton(button);
 
     // Select pause button
-    bool buttonTappedOrClicked = touchIdx != -1 ||
-        (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && IsMouseWithinUiButton(button));
-    if (!buttonTappedOrClicked)
+    bool buttonTapped = ((touchIdx != -1) && IsTouchTapped(touchIdx));
+    bool buttonClicked = (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)
+                                  && IsMouseWithinUiButton(button));
+    if (!buttonTapped && !buttonClicked)
         button->clicked = false;
 
-    if (ui.currentMenu == UI_MENU_GAMEPLAY && buttonTappedOrClicked)
+    if (ui.currentMenu == UI_MENU_GAMEPLAY && (buttonTapped || buttonClicked))
     {
         if (button->buttonId == UI_BID_PAUSE)
         {
@@ -345,19 +341,20 @@ void UpdateUiVirtualInput(UiButton *button)
 
     int touchIdx = IsTouchWithinUiButton(button);
     bool buttonTapped = (touchIdx != -1);
+    if (buttonTapped)
+        SetTouchPointButton(touchIdx, button->buttonId);
 
     SetVirtualInput(buttonInputAction, buttonTapped);
     button->clicked = buttonTapped;
-    if (buttonTapped)
-        SetTouchPointButton(touchIdx, (int)button->buttonId);
 }
 
 void UpdateUiAnalogStick(UiAnalogStick *stick)
 {
     Vector2 touchPos = { 0 };
     int touchIdx;
-    if (stick->lastTouchIdx != -1)
-        touchIdx = stick->lastTouchIdx;
+    if ((stick->lastTouchId != -1) &&
+        (GetTouchPointId(stick->lastTouchId) < game.touchCount))
+        touchIdx = stick->lastTouchId;
     else
         touchIdx = CheckCollisionTouchCircle(stick->centerPos, stick->centerRadius);
 
@@ -366,12 +363,12 @@ void UpdateUiAnalogStick(UiAnalogStick *stick)
     {
         stick->stickPos = stick->centerPos;
         stick->isActive = false;
-        stick->lastTouchIdx = -1;
+        stick->lastTouchId = -1;
         return;
     }
 
     // is touching analog stick
-    stick->lastTouchIdx = touchIdx;
+    stick->lastTouchId = GetTouchPointId(touchIdx);
     touchPos = GetScreenToWorld2D(GetTouchPosition(touchIdx), game.camera);
 
     bool isTouchWithinStick =
@@ -440,24 +437,12 @@ int IsTouchWithinUiButton(UiButton *button)
 {
     int buttonWidth = MeasureText(button->text, button->fontSize);
     Rectangle buttonRect = {
-        button->position.x - UI_BUTTON_PADDING,
-        button->position.y,
-        buttonWidth + UI_BUTTON_PADDING*2,
-        button->fontSize + UI_BUTTON_PADDING*2, };
+       (float)button->position.x - UI_BUTTON_PADDING,
+       (float)button->position.y,
+       (float)buttonWidth + UI_BUTTON_PADDING*2,
+       (float)button->fontSize + UI_BUTTON_PADDING*2, };
 
     return CheckCollisionTouchRec(buttonRect);
-}
-
-bool IsUiButtonPressed(UiButton *button)
-{
-    int touchIdx = IsTouchWithinUiButton(button);
-    if (touchIdx != -1 && IsTouchTapped(touchIdx))
-        return true;
-
-    if (IsMouseWithinUiButton(button) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
-        return true;
-
-    return false;
 }
 
 // Draw
@@ -536,31 +521,41 @@ void DrawUiFrame(void)
     }
 
     // Debug:
-    // Color touchColors[10] = { RED, BLUE, GREEN, YELLOW, ORANGE, PURPLE, BROWN, WHITE, GRAY, MAGENTA };
-    // for (int i = 0; i < game.touchCount; ++i)
-    // {
-    //     Vector2 touchPosition = GetScreenToWorld2D(GetTouchPosition(i), game.camera);
-    //     DrawCircleV(touchPosition, 200.0f, touchColors[i]);
-    // }
-    // const int textSize = 50;
-    // int textY = 100;
-    // DrawText(TextFormat("%i touchCount", game.touchCount), 0, textY, textSize, RAYWHITE);
-    // textY += textSize;
-    // Vector2 mousePos = GetScreenToWorld2D(GetMousePosition(), game.camera);
-    // DrawText(TextFormat("mouse: %3.0f, %3.0f", mousePos.x, mousePos.y), 0, textY, textSize, RAYWHITE);
-    // if (game.touchCount > 0)
-    // {
-    //     for (int i = 0; i < game.touchCount; i++)
-    //     {
-    //         textY += textSize;
-    //         DrawText(TextFormat("touch %i: %3.0f, %3.0f", i, GetTouchPosition(i).x, GetTouchPosition(i).y), 0, textY, textSize, RAYWHITE);
-    //     }
-    // }
-    // DrawText(TextFormat("%2i rock total", game.rockLimit), 0, textY, textSize, RAYWHITE);
-    // textY += textSize;
-    // DrawText(TextFormat("%2i remaining", game.rockLimit - game.eliminatedCount), 0, textY, textSize, RAYWHITE);
-    // textY += textSize;
-    // DrawText(TextFormat("speed: %3.0f", Vector2Length(game.ship.velocity)), 0, textY, textSize, RAYWHITE);
+    /*
+    Color touchColors[10] = { RED, BLUE, GREEN, YELLOW, ORANGE, PURPLE, BROWN, WHITE, GRAY, MAGENTA };
+    for (int i = 0; i < game.touchCount; ++i)
+    {
+        Vector2 touchPosition = GetScreenToWorld2D(GetTouchPosition(i), game.camera);
+        DrawCircleV(touchPosition, 200.0f, touchColors[i]);
+    }
+
+    const int textSize = 30;
+    int textY = 150;
+    DrawText(TextFormat("%i touchCount", game.touchCount), 0, textY, textSize, RAYWHITE);
+    textY += textSize;
+    for (int i = 0; i < 10; i++)
+    {
+        DrawText(TextFormat("touch %i id: %i", i, GetTouchPointId(i)), 0, textY, textSize, RAYWHITE);
+        textY += textSize;
+    }
+    Vector2 mousePos = GetScreenToWorld2D(GetMousePosition(), game.camera);
+    DrawText(TextFormat("mouse: %3.0f, %3.0f", mousePos.x, mousePos.y), 0, textY, textSize, RAYWHITE);
+    textY += textSize;
+    if (game.touchCount > 0)
+    {
+        for (int i = 0; i < game.touchCount; i++)
+        {
+            DrawText(TextFormat("touch %i: %3.0f, %3.0f", i, GetTouchPosition(i).x, GetTouchPosition(i).y), 0, textY, textSize, RAYWHITE);
+            textY += textSize;
+        }
+    }
+    DrawText(TextFormat("%2i rock total", game.rockLimit), 0, textY, textSize, RAYWHITE);
+    textY += textSize;
+    DrawText(TextFormat("%2i remaining", game.rockLimit - game.eliminatedCount), 0, textY, textSize, RAYWHITE);
+    textY += textSize;
+    DrawText(TextFormat("speed: %3.0f", Vector2Length(game.ship.velocity)), 0, textY, textSize, RAYWHITE);
+    textY += textSize;
+    */
 }
 
 void DrawUiElement(UiButton *button)
@@ -589,8 +584,8 @@ void DrawUiOutline(UiButton *selectedButton)
     int outlineWidth    = 4;
     int buttonWidth     = MeasureText(selectedButton->text, selectedButton->fontSize);
     int buttonHeight    = selectedButton->fontSize;
-    int buttonPosX      = selectedButton->position.x - padding;
-    int buttonPosY      = selectedButton->position.y - padding;
+    float buttonPosX    = selectedButton->position.x - padding;
+    float buttonPosY    = selectedButton->position.y - padding;
     int highlightWidth  = buttonWidth + padding * 2;
     int highlightHeight = buttonHeight + padding * 2;
 
@@ -602,11 +597,13 @@ void DrawUiOutline(UiButton *selectedButton)
 
     // outline box
     DrawRectangleLinesEx((Rectangle){ buttonPosX, buttonPosY,
-                         highlightWidth, highlightHeight },
-                         outlineWidth, RAYWHITE);
+                         (float)highlightWidth, (float)highlightHeight },
+                         (float)outlineWidth, RAYWHITE);
     // box around text
-    DrawRectangle(buttonPosX + outlineWidth, buttonPosY + outlineWidth,
-                  highlightWidth - outlineWidth*2, highlightHeight - outlineWidth*2, boxColor);
+    DrawRectangle((int)buttonPosX + outlineWidth,
+                  (int)buttonPosY + outlineWidth,
+                  highlightWidth - outlineWidth*2,
+                  highlightHeight - outlineWidth*2, boxColor);
 }
 
 void DrawUiAnalogStick(UiAnalogStick *stick)
@@ -622,7 +619,7 @@ void DrawLives(void)
     const char* text = "Lives: ";
     const int textWidth = MeasureText(text, UI_FONT_SIZE_EDGE);
     DrawText(text, UI_EDGE_PADDING, UI_EDGE_PADDING, UI_FONT_SIZE_EDGE, RAYWHITE);
-    const float scale = UI_FONT_SIZE_EDGE*0.95/game.ship.length;
+    const float scale = UI_FONT_SIZE_EDGE*0.95f/game.ship.length;
     const float spacing = game.ship.width*scale/8;
     Vector2 lifeTriangle[3] = { 0 };
 

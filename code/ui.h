@@ -62,7 +62,7 @@ typedef struct UiAnalogStick {
     Vector2 stickPos;
     float centerRadius;
     float stickRadius;
-    int lastTouchIdx;
+    int lastTouchId;
     bool isActive;
 } UiAnalogStick;
 
@@ -115,7 +115,6 @@ void ChangeUiMenu(UiMenuState newMenu); // Change from one menu to another
 
 bool IsMouseWithinUiButton(UiButton *button);
 int IsTouchWithinUiButton(UiButton *button);
-bool IsUiButtonPressed(UiButton *button);
 
 // Draw
 void DrawUiFrame(void); // Draws the menu for the current frame
