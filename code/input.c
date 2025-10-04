@@ -39,6 +39,7 @@ void InitDefaultInputControls(void)
         .mouseMaps[INPUT_ACTION_SHOOT] =   { INPUT_MOUSE_LEFT_BUTTON },
     };
 
+    // Set touch point button ids (bad code. only used for touch screen analog stick, needs to be rewritten)
     for (unsigned int i = 0; i < INPUT_MAX_TOUCH_POINTS; ++i)
         gameInput.touchPoints[i].currentButton = -1;
 
@@ -56,13 +57,12 @@ bool IsInputKeyModifier(KeyboardKey key)
 
 bool IsInputActionPressed(InputAction action)
 {
-    // Check virtual button
-    if (gameInput.virtualButtonPressed[action] == true)
+    // Check touch screen button
+    if (gameInput.touchButtonPressed[action] == true)
         return true;
 
-    KeyboardKey* keys = gameInput.keyMaps[action];
-
     // Check potential key combinations
+    KeyboardKey* keys = gameInput.keyMaps[action];
     for (unsigned int i = 0; i < INPUT_MAX_MAPS && keys[i] != 0; i++)
     {
         KeyboardKey key = keys[i];
@@ -115,11 +115,11 @@ bool IsInputActionMousePressed(InputAction action)
 
 bool IsInputActionDown(InputAction action)
 {
-    if (gameInput.virtualButtonPressed[action] == true)
+    if (gameInput.touchButtonPressed[action] == true)
         return true;
 
+    // Check potential key combinations
     KeyboardKey* keys = gameInput.keyMaps[action];
-
     for (unsigned int i = 0; i < INPUT_MAX_MAPS && keys[i] != 0; i++)
     {
         KeyboardKey key = keys[i];
@@ -171,9 +171,9 @@ bool IsInputActionMouseDown(InputAction action)
 
 // Touch / Virtual Input
 // ----------------------------------------------------------------------------
-void SetVirtualInput(InputAction action, bool buttonPressed)
+void SetTouchInput(InputAction action, bool isButtonPressed)
 {
-    gameInput.virtualButtonPressed[action] = buttonPressed;
+    gameInput.touchButtonPressed[action] = isButtonPressed;
 }
 
 void SetTouchPointButton(int index, int buttonIdx)

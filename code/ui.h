@@ -108,8 +108,9 @@ void FreeUiState(void); // Frees memory for all menu buttons
 void UpdateUiFrame(void); // Updates the menu for the current frame
 void UpdateUiMenuTraverse(void); // Updates the cursor for movement by user input
 // void UpdateUiButtonMouseHover(UiButton *button); // Draw cursor when mouse is over button
+//                                                  // Disabled+Unused
 void UpdateUiButtonSelect(UiButton *button); // Selects a button by user input
-void UpdateUiVirtualInput(UiButton *button); // Updates virtual input from button
+void UpdateUiTouchInput(UiButton *button); // Updates virtual input from button
 void UpdateUiAnalogStick(UiAnalogStick *stick);
 void ChangeUiMenu(UiMenuState newMenu); // Change from one menu to another
 
@@ -123,6 +124,7 @@ void DrawUiCursor(UiButton *selectedButton); // Draw the cursor at the given but
 void DrawUiOutline(UiButton *selectedButton); // Draw a highlight box around a given button
 void DrawUiAnalogStick (UiAnalogStick *stick); // Draw virtual analog stick
 void DrawLives(void);
-void DrawCenterText(void);
+void DrawCenterText(void); // Draws center text based on game state
+                           // TODO replace with something like SetCenterText(char *text, float time)?
 
 #endif // ASTEROIDS_MENU_HEADER_GUARD

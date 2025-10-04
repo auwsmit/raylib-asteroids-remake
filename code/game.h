@@ -25,10 +25,6 @@ typedef enum ScreenState {
     SCREEN_LOGO, SCREEN_TITLE, SCREEN_GAMEPLAY
 } ScreenState;
 
-typedef enum GameMode {
-    MODE_1PLAYER, MODE_2PLAYER, MODE_DEMO
-} GameMode;
-
 typedef struct GameSounds {
     Sound menu;
     Sound explodeSmall;
@@ -62,7 +58,7 @@ typedef struct GameState {
     unsigned int rockLimit;
     unsigned int eliminatedCount;
     float frameTime;
-    float delayTimer;
+    float messageTimer;
     float newLevelTimer;
     bool anyKeyPressed;
     bool touchMode;

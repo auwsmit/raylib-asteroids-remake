@@ -36,14 +36,15 @@ typedef struct TouchState {
     Vector2 position;
     bool pressedPreviousFrame;
     bool pressedCurrentFrame;
-    int currentButton;
+    int currentButton; // TODO this should probably just be a bool
+                       // ... actually the touch screen input UI stuff just needs a rewrite
 } TouchState;
 
 typedef struct InputState {
     KeyboardKey keyMaps[INPUT_ACTIONS_COUNT][INPUT_MAX_MAPS];
     MouseButton mouseMaps[INPUT_ACTIONS_COUNT][INPUT_MAX_MAPS];
-    // GamepadButton gamepadButtonMaps[INPUT_ACTIONS_COUNT][INPUT_MAX_MAPS];
-    bool virtualButtonPressed[INPUT_ACTIONS_COUNT];
+    // GamepadButton gamepadButtonMaps[INPUT_ACTIONS_COUNT][INPUT_MAX_MAPS]; // TODO
+    bool touchButtonPressed[INPUT_ACTIONS_COUNT]; // for touch screen buttons
     TouchState touchPoints[INPUT_MAX_TOUCH_POINTS];
 } InputState;
 
@@ -58,16 +59,16 @@ bool IsInputActionDown(InputAction action);
 bool IsInputActionMouseDown(InputAction action);
 
 // Touch / Virtual Input
-void SetVirtualInput(InputAction action, bool buttonPressed);
-void SetTouchPointButton(int index, int buttonIdx);
-bool IsTouchTapped(int index); // Check if a touch point was tapped
-bool IsTouchPressingButton(int index); // Check if a touch point is in any button
+void SetTouchInput(InputAction action, bool isButtonPressed);
+void SetTouchPointButton(int index, int buttonIdx); // Set a touch point's current button id (currently used for touch screen analog stick, which probably needs a redesign/rewrite)
+bool IsTouchTapped(int index); // Check if a touch point was tapped (works like IsKeyPressed)
+bool IsTouchPressingButton(int index); // Check if a touch point is pressing any button
 int CheckCollisionTouchCircle(Vector2 center, float radius); // Check if any touch points are within a circle, returns index to touch point or -1
 int CheckCollisionTouchRec(Rectangle rec); // Check if any touch points are within a rectangle, returns index to touch point or -1
 
 // Helpers
-// int CheckAvailableGamepads(void);
-int UpdateInputTouchPoints(void);
-Vector2 GetScaledMousePosition(void);
+// int CheckAvailableGamepads(void); // TODO
+int UpdateInputTouchPoints(void); // Update touch point info for each frame
+Vector2 GetScaledMousePosition(void); // Scale mouse position to the game camera
 
 #endif // ASTEROIDS_INPUT_HEADER_GUARD

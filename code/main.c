@@ -52,7 +52,7 @@ int main(void)
     SetExitKey(KEY_NULL);
 
     // Debug:
-    SetExitKey(KEY_Q);
+    // SetExitKey(KEY_Q);
 
     // Start the game loop
     // (See UpdateDrawFrame() for the full game loop)
@@ -76,7 +76,7 @@ void CreateNewWindow(void)
     if (VSYNC_ENABLED) windowFlags |= FLAG_VSYNC_HINT;
 #endif
     SetConfigFlags(windowFlags);
-    InitWindow(DEFAULT_WIDTH, DEFAULT_HEIGHT, WINDOW_TITLE);
+    InitWindow(INITIAL_WIDTH, INITIAL_HEIGHT, WINDOW_TITLE);
     SetWindowMinSize(320, 240);
 }
 

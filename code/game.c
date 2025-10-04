@@ -42,7 +42,7 @@ void InitGameState(ScreenState screen)
             (Vector2){  SHIP_WIDTH/2, SHIP_WIDTH/2 },
         },
         .jetTriangle = {
-            (Vector2){  0, -SHIP_LENGTH*4/5 },
+            (Vector2){  0, -SHIP_LENGTH*0.8f },
             (Vector2){ -SHIP_WIDTH/6, -SHIP_WIDTH/3 },
             (Vector2){  SHIP_WIDTH/6, -SHIP_WIDTH/3 },
         },
@@ -98,12 +98,12 @@ void InitGameState(ScreenState screen)
     }
     else // reuse already allocated memory
     {
-        defaults.sounds.menu =  game.sounds.menu;
         defaults.rocks = game.rocks;
+        defaults.sounds = game.sounds;
 
-        defaults.textures.ship = game.textures.ship;
         defaults.ship.soundExplode = game.ship.soundExplode;
         defaults.ship.soundShoot = game.ship.soundShoot;
+        defaults.textures = game.textures;
     }
 
     game = defaults;
@@ -176,8 +176,8 @@ void UpdateGameFrame(void)
     // Update virtual input buttons
     if (game.touchMode)
     {
-        UpdateUiVirtualInput(&ui.shoot);
-        UpdateUiVirtualInput(&ui.fly);
+        UpdateUiTouchInput(&ui.shoot);
+        UpdateUiTouchInput(&ui.fly);
         UpdateUiAnalogStick(&ui.stick);
     }
 
@@ -186,10 +186,10 @@ void UpdateGameFrame(void)
         game.rockLimit == game.eliminatedCount)
     {
         game.levelFinished = true;
-        game.delayTimer = 3.0f;
+        game.messageTimer = 3.0f;
         ui.textFade = 1.0f;
     }
-    if (game.levelFinished && (game.delayTimer < EPSILON))
+    if (game.levelFinished && (game.messageTimer < EPSILON))
         InitNewLevel(game.currentLevel + 1);
 
     // Pause
@@ -213,13 +213,13 @@ void UpdateGameFrame(void)
     }
 
     // Update timers
-    if (!game.isPaused && game.delayTimer > EPSILON)
-        game.delayTimer -= game.frameTime;
+    if (!game.isPaused && game.messageTimer > EPSILON)
+        game.messageTimer -= game.frameTime;
     if (!game.isPaused && game.newLevelTimer > EPSILON)
         game.newLevelTimer -= game.frameTime;
 
     bool noMessageDisplayed = (game.newLevelTimer < EPSILON);
-    if (!game.isPaused && (noMessageDisplayed || game.delayTimer > EPSILON))
+    if (!game.isPaused && (noMessageDisplayed || game.messageTimer > EPSILON))
     {
         // Game Over
         bool inputCooldownFinished = (SHIP_RESPAWN_TIME - game.ship.respawnTimer >= GAMEOVER_INPUT_COOLDOWN);

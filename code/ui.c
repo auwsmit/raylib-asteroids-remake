@@ -77,16 +77,15 @@ void InitUiState(void)
 
 UiButton InitUiTitle(char *text)
 {
-    static bool previousTitleLine = false;
-
     int fontSize = UI_TITLE_SIZE;
     int textWidth = MeasureText(text, fontSize);
     float titlePosX = (VIRTUAL_WIDTH - (float)textWidth)/2;
-#if !defined(PLATFORM_WEB) // different spacing for web
-        float titlePosY = UI_TITLE_TOP_PADDING;
-#else
-        float titlePosY = UI_TITLE_TOP_PADDING + UI_TITLE_BUTTON_SIZE;
+    float titlePosY = UI_TITLE_TOP_PADDING;
+#if defined(PLATFORM_WEB) // different spacing for web
+    titlePosY += UI_TITLE_BUTTON_SIZE;
 #endif
+
+    static bool previousTitleLine = false;
     if (previousTitleLine)
         titlePosY += UI_TITLE_SIZE + 10;
 
@@ -158,9 +157,9 @@ void UpdateUiFrame(void)
         UpdateUiButtonSelect(selectedButton);
         UpdateUiMenuTraverse();
     }
+
     // Update in-game UI buttons
-    // (touch virtual controls are separate,
-    // see UpdateUiTouchButton)
+    // (touch virtual controls are separate, see UpdateUiTouchButton())
     else if (!game.isPaused && game.touchMode)
     {
         // Pause button
@@ -252,13 +251,15 @@ void UpdateUiMenuTraverse(void)
         ui.autoScroll = false;
     }
 
+    // Play sound when cursor moved
     if (ui.selectedId != prevId && !ui.firstFrame && !game.touchMode)
         PlaySound(game.sounds.menu);
 
     ui.firstFrame = false;
 }
 
-// void UpdateUiButtonMouseHover(UiButton *button)
+
+// void UpdateUiButtonMouseHover(UiButton *button) // Disabled+Unused
 // {
 //     bool mouseMoved = (Vector2Length(GetMouseDelta()) > 0);
 //     if (!mouseMoved) return;
@@ -332,7 +333,7 @@ void UpdateUiButtonSelect(UiButton *button)
     }
 }
 
-void UpdateUiVirtualInput(UiButton *button)
+void UpdateUiTouchInput(UiButton *button)
 {
     InputAction buttonInputAction;
     if (button->buttonId == UI_BID_SHOOT) buttonInputAction = INPUT_ACTION_SHOOT;
@@ -344,7 +345,7 @@ void UpdateUiVirtualInput(UiButton *button)
     if (buttonTapped)
         SetTouchPointButton(touchIdx, button->buttonId);
 
-    SetVirtualInput(buttonInputAction, buttonTapped);
+    SetTouchInput(buttonInputAction, buttonTapped);
     button->clicked = buttonTapped;
 }
 
@@ -463,7 +464,7 @@ void DrawUiFrame(void)
             DrawUiElement(&ui.title[i]);
     }
 
-    // Draw menus OR Individual buttons
+    // Draw menus and buttons
     // ----------------------------------------------------------------------------
     if (ui.currentMenu != UI_MENU_GAMEPLAY) // Draw non-gameplay menu
     {
@@ -474,7 +475,7 @@ void DrawUiFrame(void)
         for (unsigned int i = 0; i < menu->buttonCount; i++)
             DrawUiElement(&menu->buttons[i]);
     }
-    else if (game.currentScreen == SCREEN_GAMEPLAY && game.touchMode)
+    else if (game.currentScreen == SCREEN_GAMEPLAY && game.touchMode) // Touch controls
     {
         // Draw pause button
         DrawUiOutline(&ui.pause);
@@ -521,6 +522,7 @@ void DrawUiFrame(void)
     }
 
     // Debug:
+    // TODO make toggleable hotkey for debug overlay
     /*
     Color touchColors[10] = { RED, BLUE, GREEN, YELLOW, ORANGE, PURPLE, BROWN, WHITE, GRAY, MAGENTA };
     for (int i = 0; i < game.touchCount; ++i)
@@ -682,7 +684,7 @@ void DrawCenterText(void)
         centerText = true;
     }
 
-    if (game.delayTimer > EPSILON && !game.levelFinished && !game.ship.isExploded)
+    if (game.messageTimer > EPSILON && !game.levelFinished && !game.ship.isExploded)
     {
         centerText = false;
         ui.textFade = 1.0f;

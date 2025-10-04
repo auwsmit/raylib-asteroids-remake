@@ -49,10 +49,10 @@ typedef struct SpaceShip {
 // Prototypes
 // ----------------------------------------------------------------------------
 
-void UpdateShip(SpaceShip *ship);
+void UpdateShip(SpaceShip *ship); // Take player input and update ship
 void DrawShip(SpaceShip *ship);
 
-void UpdateShipTriangles(SpaceShip *ship);
+void UpdateShipTriangles(SpaceShip *ship); // Calculate ship's hitbox for collision
 void RotateShipToMouse(SpaceShip *ship);
 void RespawnShip(SpaceShip *ship);
 void ShootMissile(SpaceShip *ship);

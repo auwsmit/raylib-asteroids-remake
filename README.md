@@ -1,11 +1,20 @@
 # Asteroids Remake with raylib
 
+<p align="center">
+  <a href="https://auwsmit.github.io/raylib-asteroids-remake/">
+    <img style="width:800px" src="https://github.com/auwsmit/raylib-asteroids-remake/blob/main/demo.gif">
+  </a>
+  <p align="center">
+    <a href="https://auwsmit.github.io/raylib-asteroids-remake/"><b>Click here to play in web browser!</b></a>
+  </p>
+</p>
+
 This is my second [raylib](https://www.raylib.com/) project, made to learn
-about the library and basic game development. Still a work in progress.
+about the library and basic game development. Like before, there were many
+features and some bugs that I didn't get to before my self-imposed deadline.
+But I'm pretty happy with how it turned out.
 
 Runs on Windows, Linux, MacOS, and web browsers.
-
-[Click here to play in your browser!](https://auwsmit.github.io/raylib-asteroids-remake/)
 
 ## Controls
 
@@ -18,7 +27,7 @@ Runs on Windows, Linux, MacOS, and web browsers.
     - **Thrust:** `Right click`/`W`/`↑`
     - **Aim:** `Move mouse`/`A`/`D`/`←`/`→`
 
-- **Pause:** `P`
+- **Pause:** `P`/`Esc`
 
 - **Toggle fullscreen:** `Alt+Enter`/`F11`/`Shift+F` (desktop only)
 

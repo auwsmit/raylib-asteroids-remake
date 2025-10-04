@@ -13,7 +13,7 @@ void UpdateShip(SpaceShip *ship)
     if (ship->isExploded)
     {
         ship->explosionTimer -= game.frameTime;
-        if (game.delayTimer < EPSILON)
+        if (game.messageTimer < EPSILON)
             ship->respawnTimer -= game.frameTime;
 
         // Respawn
@@ -131,8 +131,7 @@ void UpdateShip(SpaceShip *ship)
     if (game.ship.isExploded)
     {
         game.lives--;
-        if (game.lives > 0)
-            game.delayTimer = 3.0f;
+        if (game.lives > 0) game.messageTimer = 3.0f;
         ui.textFade = 1.0f; // for respawn message
     }
 }
@@ -147,8 +146,7 @@ void DrawShip(SpaceShip *ship)
     Color shipColor = GRAY;
     Color jetColor = Fade(ORANGE, 0.5f);
 
-    // Draw ship + jet triangles
-    // DrawTriangle(ship->shipPoints[0], ship->shipPoints[1], ship->shipPoints[2], shipColor);
+    // Draw jet triangle
     if (ship->isThrusting)
         DrawTriangle(ship->jetPoints[0], ship->jetPoints[1], ship->jetPoints[2], jetColor);
 
@@ -159,8 +157,7 @@ void DrawShip(SpaceShip *ship)
     Rectangle spriteSrc = { 0.0f, 0.0f, (float)sprite.width, (float)sprite.height };
     Rectangle spriteDest = {
         ship->position.x, ship->position.y,
-        sprite.width*spriteScaleX,
-        sprite.height*spriteScaleY
+        sprite.width*spriteScaleX, sprite.height*spriteScaleY
     };
     Vector2 spriteOrigin = {
         sprite.width/2*spriteScaleX,
@@ -176,7 +173,6 @@ void DrawShip(SpaceShip *ship)
     {
         for (unsigned int i = 0; i < 8; i++)
         {
-            // Vector2 cloneShip[3];
             Vector2 spriteClonePos = Vector2Add(ship->position, game.wrapOffsets[i]);
             Rectangle spriteCloneDest = {
                 spriteClonePos.x, spriteClonePos.y,
@@ -184,9 +180,6 @@ void DrawShip(SpaceShip *ship)
                 sprite.height*spriteScaleY
             };
             Vector2 cloneJet[3];
-            // cloneShip[0] = Vector2Add(ship->shipPoints[0], game.wrapOffsets[i]);
-            // cloneShip[1] = Vector2Add(ship->shipPoints[1], game.wrapOffsets[i]);
-            // cloneShip[2] = Vector2Add(ship->shipPoints[2], game.wrapOffsets[i]);
             cloneJet[0] = Vector2Add(ship->jetPoints[0], game.wrapOffsets[i]);
             cloneJet[1] = Vector2Add(ship->jetPoints[1], game.wrapOffsets[i]);
             cloneJet[2] = Vector2Add(ship->jetPoints[2], game.wrapOffsets[i]);
@@ -226,7 +219,6 @@ void RespawnShip(SpaceShip *ship)
     ship->velocity = (Vector2){ 0, 0 };
     ship->angle = 90;
     ship->respawnTimer = SHIP_RESPAWN_TIME;
-    // if (game.lives != STARTING_LIVES)
     ship->safeRespawnTimer = SHIP_SAFE_TIME;
 
     UpdateShipTriangles(ship);
@@ -234,7 +226,6 @@ void RespawnShip(SpaceShip *ship)
 
 void ShootMissile(SpaceShip *ship)
 {
-    // spawn bullet
     if (ship->shotCount == MISSILE_MAX) ship->shotCount = 0;
 
     Missile *shot = &ship->missiles[ship->shotCount];
